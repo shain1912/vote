@@ -12,26 +12,13 @@
   --mono: ui-monospace, Consolas, monospace;
 
   font: 16px/1.5 var(--sans);
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #d4d4d8;
-    --text-h: #fafafa;
-    --bg: #18181b;
-    --border: #3f3f46;
-    --panel-bg: #202023;
-    --accent: #a78bfa;
-    --accent-contrast: #18181b;
-    --error: #f87171;
-  }
 }
 
 * {
