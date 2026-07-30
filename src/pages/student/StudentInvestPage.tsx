@@ -1,80 +1,188 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { PresentationLink } from '../../components/PresentationLink'
-import { DUMMY_STUDENTS, DUMMY_TEAMS } from '../../lib/dummyData'
+import {
+  getErrorMessage,
+  getMyInvestments,
+  getStudentByCode,
+  listTeams,
+  submitInvestment,
+  submitPresentationUrl,
+} from '../../lib/api'
+import type { StudentIdentity, TeamSummary } from '../../lib/types'
 
-// TODO(scoring-design): replace with the real remaining-budget figure once
-// each student's personal investment budget/round rules are finalized.
-const PLACEHOLDER_BUDGET = 0
+// Fixed per-student budget for this event (confirmed, not a placeholder).
+const PERSONAL_BUDGET = 10000
+
+interface FieldStatus {
+  state: 'idle' | 'saving' | 'saved' | 'error'
+  message?: string
+}
+
+const IDLE_STATUS: FieldStatus = { state: 'idle' }
 
 export function StudentInvestPage() {
   const { code } = useParams<{ code: string }>()
 
-  // TODO(scoring-design): look up the student by `code` (access_code) via
-  // Supabase instead of using dummy data. If no student matches, show an
-  // "invalid link" state instead of the form below.
-  const currentStudent = DUMMY_STUDENTS[0]
-  const myTeam = DUMMY_TEAMS.find((team) => team.id === currentStudent.teamId)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [student, setStudent] = useState<StudentIdentity | null>(null)
+  const [teams, setTeams] = useState<TeamSummary[]>([])
+  const [committedAmounts, setCommittedAmounts] = useState<Record<string, number>>({})
+  const [draftAmounts, setDraftAmounts] = useState<Record<string, string>>({})
+  const [rowStatus, setRowStatus] = useState<Record<string, FieldStatus>>({})
 
-  // Investing is per-student, not per-team: a student cannot invest in
-  // their own team, but their teammates each get their own independent
-  // allocation (three teammates might invest very differently).
-  const investableTeams = DUMMY_TEAMS.filter((team) => team.id !== currentStudent.teamId)
+  const [presentationUrlInput, setPresentationUrlInput] = useState('')
+  const [presentationStatus, setPresentationStatus] = useState<FieldStatus>(IDLE_STATUS)
 
-  const [amounts, setAmounts] = useState<Record<string, string>>({})
-  const [presentationUrlInput, setPresentationUrlInput] = useState(myTeam?.presentationUrl ?? '')
+  useEffect(() => {
+    if (!code) {
+      setLoadError('잘못된 링크입니다.')
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    async function load(accessCode: string) {
+      setLoading(true)
+      setLoadError(null)
+      try {
+        const studentRows = await getStudentByCode(accessCode)
+        if (cancelled) return
+
+        if (studentRows.length === 0) {
+          setStudent(null)
+          return
+        }
+        const me = studentRows[0]
+
+        const [teamList, investments] = await Promise.all([
+          listTeams(),
+          getMyInvestments(accessCode),
+        ])
+        if (cancelled) return
+
+        const committed = Object.fromEntries(investments.map((row) => [row.team_id, row.amount]))
+        const otherTeamIds = teamList.filter((team) => team.id !== me.team_id).map((team) => team.id)
+
+        setStudent(me)
+        setTeams(teamList)
+        setCommittedAmounts(committed)
+        setDraftAmounts(
+          Object.fromEntries(otherTeamIds.map((teamId) => [teamId, String(committed[teamId] ?? 0)])),
+        )
+
+        const myTeam = teamList.find((team) => team.id === me.team_id)
+        setPresentationUrlInput(myTeam?.presentation_url ?? '')
+      } catch (err) {
+        if (!cancelled) setLoadError(getErrorMessage(err))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load(code)
+    return () => {
+      cancelled = true
+    }
+  }, [code])
+
+  const remainingBudget =
+    PERSONAL_BUDGET - Object.values(committedAmounts).reduce((sum, amount) => sum + amount, 0)
 
   function handleAmountChange(teamId: string, value: string) {
-    setAmounts((previous) => ({ ...previous, [teamId]: value }))
+    setDraftAmounts((previous) => ({ ...previous, [teamId]: value }))
+    setRowStatus((previous) => ({ ...previous, [teamId]: IDLE_STATUS }))
   }
 
-  function handleSubmitInvestments(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveInvestment(teamId: string) {
+    if (!code) return
+
+    const raw = draftAmounts[teamId] ?? '0'
+    const amount = Number(raw)
+    if (!Number.isInteger(amount) || amount < 0) {
+      setRowStatus((previous) => ({
+        ...previous,
+        [teamId]: { state: 'error', message: '0 이상의 정수를 입력하세요.' },
+      }))
+      return
+    }
+
+    setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saving' } }))
+    try {
+      await submitInvestment(code, teamId, amount)
+      setCommittedAmounts((previous) => ({ ...previous, [teamId]: amount }))
+      setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saved' } }))
+    } catch (err) {
+      setRowStatus((previous) => ({
+        ...previous,
+        [teamId]: { state: 'error', message: getErrorMessage(err) },
+      }))
+    }
+  }
+
+  async function handleSubmitPresentation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!code || !student) return
 
-    // TODO(scoring-design): this is a stub. Real submission needs to:
-    // - decide whether this is a single round or multiple rounds
-    // - validate total invested amount against this student's personal
-    //   remaining budget
-    // - write to the (not-yet-designed) `investments` table via Supabase,
-    //   keyed by this student's id and each team's id
-    // (Self-investment is already excluded above: `investableTeams` never
-    // contains this student's own team_id.)
-    console.log('[stub] submit investments', { studentCode: code, amounts })
+    setPresentationStatus({ state: 'saving' })
+    try {
+      await submitPresentationUrl(code, presentationUrlInput)
+      setTeams((previous) =>
+        previous.map((team) =>
+          team.id === student.team_id ? { ...team, presentation_url: presentationUrlInput } : team,
+        ),
+      )
+      setPresentationStatus({ state: 'saved' })
+    } catch (err) {
+      setPresentationStatus({ state: 'error', message: getErrorMessage(err) })
+    }
   }
 
-  function handleSubmitPresentation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    // TODO(scoring-design): stub. Real submission should update the
-    // `presentation_url` column on this student's OWN team's row (see
-    // supabase/migrations/0001_core_entities.sql), most likely via an RLS
-    // policy that lets any student update only their own team_id's row.
-    // Any of the ~3 teammates can submit/edit this — it's shared per team,
-    // not per student.
-    console.log('[stub] submit presentation url', { studentCode: code, presentationUrlInput })
+  if (loading) {
+    return <p className="page-status">불러오는 중...</p>
   }
+
+  if (loadError) {
+    return (
+      <div className="page">
+        <h1>오류</h1>
+        <p className="error-text">{loadError}</p>
+      </div>
+    )
+  }
+
+  if (!student) {
+    return (
+      <div className="page">
+        <h1>유효하지 않은 링크</h1>
+        <p>이 링크는 더 이상 유효하지 않습니다. 담당자에게 새 링크를 요청하세요.</p>
+      </div>
+    )
+  }
+
+  const myTeam = teams.find((team) => team.id === student.team_id)
+  const investableTeams = teams.filter((team) => team.id !== student.team_id)
 
   return (
     <div className="page">
-      <h1>{currentStudent.name}</h1>
-      <p className="page-subtitle">
-        소속 팀: {myTeam?.name ?? '알 수 없음'} · 개인 초대 코드: {code}
-      </p>
+      <h1>{student.student_name}</h1>
+      <p className="page-subtitle">소속 팀: {student.team_name}</p>
 
       <section className="panel">
         <h2>나의 투자 예산</h2>
-        {/* TODO(scoring-design): render this student's real remaining
-            budget once the investment/budget rules are defined. This is a
-            personal budget, not a team budget — teammates have their own,
-            separate amounts. */}
-        <p className="budget-amount">{PLACEHOLDER_BUDGET.toLocaleString()} (placeholder)</p>
+        <p className="budget-amount">
+          {remainingBudget.toLocaleString()} / {PERSONAL_BUDGET.toLocaleString()}
+        </p>
+        <p className="hint-text">남은 예산 / 전체 예산 (포인트)</p>
       </section>
 
       <section className="panel">
         <h2>우리 팀 발표자료 제출</h2>
         <p className="hint-text">
-          다른 팀 학생과 심사위원이 확인할 수 있는 우리 팀의 발표자료 링크를 등록하세요. 팀원 누구나
-          제출/수정할 수 있습니다.
+          다른 팀 학생과 심사위원이 확인할 수 있는 우리 팀({myTeam?.name ?? student.team_name})의
+          발표자료 링크를 등록하세요. 팀원 누구나 제출/수정할 수 있습니다.
         </p>
         <form onSubmit={handleSubmitPresentation} className="stacked-form">
           <label htmlFor="presentation-url">발표자료 링크</label>
@@ -83,47 +191,71 @@ export function StudentInvestPage() {
             type="url"
             placeholder="https://..."
             value={presentationUrlInput}
-            onChange={(event) => setPresentationUrlInput(event.target.value)}
+            onChange={(event) => {
+              setPresentationUrlInput(event.target.value)
+              setPresentationStatus(IDLE_STATUS)
+            }}
           />
-          <button type="submit">발표자료 링크 저장</button>
+          <button type="submit" disabled={presentationStatus.state === 'saving'}>
+            {presentationStatus.state === 'saving' ? '저장 중...' : '발표자료 링크 저장'}
+          </button>
+          {presentationStatus.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
+          {presentationStatus.state === 'error' && (
+            <p className="error-text">{presentationStatus.message}</p>
+          )}
         </form>
       </section>
 
       <section className="panel">
         <h2>다른 팀에 투자하기</h2>
-        <p className="hint-text">본인 팀({myTeam?.name ?? '—'})은 투자 대상 목록에서 제외됩니다.</p>
-        <form onSubmit={handleSubmitInvestments}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>팀</th>
-                <th>발표자료</th>
-                <th>투자 금액</th>
-              </tr>
-            </thead>
-            <tbody>
-              {investableTeams.map((team) => (
+        <p className="hint-text">
+          본인 팀({myTeam?.name ?? student.team_name})은 투자 대상 목록에서 제외됩니다. 팀별로 저장
+          버튼을 눌러야 반영됩니다.
+        </p>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>팀</th>
+              <th>발표자료</th>
+              <th>투자 금액</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {investableTeams.map((team) => {
+              const status = rowStatus[team.id] ?? IDLE_STATUS
+              return (
                 <tr key={team.id}>
                   <td>{team.name}</td>
                   <td>
-                    <PresentationLink url={team.presentationUrl} />
+                    <PresentationLink url={team.presentation_url} />
                   </td>
                   <td>
                     <input
                       type="number"
                       min={0}
                       inputMode="numeric"
-                      value={amounts[team.id] ?? ''}
+                      value={draftAmounts[team.id] ?? ''}
                       onChange={(event) => handleAmountChange(team.id, event.target.value)}
                       aria-label={`${team.name}에 투자할 금액`}
                     />
                   </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveInvestment(team.id)}
+                      disabled={status.state === 'saving'}
+                    >
+                      {status.state === 'saving' ? '저장 중...' : '저장'}
+                    </button>
+                    {status.state === 'saved' && <div className="hint-text">저장됨</div>}
+                    {status.state === 'error' && <div className="error-text">{status.message}</div>}
+                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <button type="submit">투자 제출</button>
-        </form>
+              )
+            })}
+          </tbody>
+        </table>
       </section>
     </div>
   )

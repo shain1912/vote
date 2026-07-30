@@ -1,33 +1,64 @@
-// Shared shapes for the entities that are stable regardless of how the
-// scoring/investment rules end up working. These mirror the columns in
-// supabase/migrations/0001_core_entities.sql and 0002_students.sql.
-//
-// TODO(scoring-design): once the `investments` and `judge_scores` tables
-// exist, add their types here too (or switch this file to generated
-// Supabase types via `supabase gen types typescript`).
+// Types mirror the RPC return shapes exactly (snake_case, matching
+// Postgres/PostgREST), since every read/write in this app goes through
+// supabase.rpc(...) — see src/lib/api.ts — rather than direct table
+// queries (RLS blocks those by design; only the RPCs below are callable).
 
-export interface Team {
+/** Row from `list_teams()`. */
+export interface TeamSummary {
   id: string
   name: string
-  /** Link to the team's slide deck / demo materials. Null until a student on the team submits one. */
-  presentationUrl: string | null
-  createdAt: string
+  presentation_url: string | null
 }
 
-// Investing is done by individual students, not by teams collectively.
-// Each student has their own access code (the /t/:code login) and belongs
-// to exactly one team. A student cannot invest in their own team.
-export interface Student {
-  id: string
-  name: string
-  teamId: string
-  accessCode: string
-  createdAt: string
+/** Row from `get_student_by_code(p_access_code)`. Empty result = invalid/expired link. */
+export interface StudentIdentity {
+  student_id: string
+  student_name: string
+  team_id: string
+  team_name: string
 }
 
-export interface Judge {
-  id: string
-  name: string
-  accessCode: string
-  createdAt: string
+/** Row from `get_judge_by_code(p_access_code)`. Empty result = invalid/expired link. */
+export interface JudgeIdentity {
+  judge_id: string
+  judge_name: string
+}
+
+/** Row from `get_my_investments(p_access_code)`. */
+export interface InvestmentRow {
+  team_id: string
+  amount: number
+}
+
+/** Row from `get_my_scores(p_access_code)`. */
+export interface JudgeScoreRow {
+  team_id: string
+  problem_impact: number
+  technical_completeness: number
+  feasibility_scalability: number
+  ux_presentation: number
+}
+
+/** Row from `get_team_leaderboard()` (authenticated/admin only). Pre-sorted by final_score desc. */
+export interface TeamLeaderboardRow {
+  team_id: string
+  team_name: string
+  judge_score: number
+  judges_scored_count: number
+  investment_received: number
+  investor_count: number
+  judge_percentile: number
+  investment_percentile: number
+  final_score: number
+}
+
+/** Row from `get_investor_leaderboard()` (authenticated/admin only). Pre-sorted by profit desc. */
+export interface InvestorLeaderboardRow {
+  student_id: string
+  student_name: string
+  team_id: string
+  team_name: string
+  total_invested: number
+  final_value: number
+  profit: number
 }
