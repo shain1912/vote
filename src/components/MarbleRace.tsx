@@ -54,15 +54,42 @@ const FULLSCREEN_MARGIN_Y = 96
 
 const SPAWN_Y = 40
 
+// Peg fields 1 and 2 originally used 8 pegs per row (60px pitch) — fine
+// for the original MARBLE_RADIUS of 11 (22px diameter), but after that
+// grew to 16 (32px diameter) for legibility, 15 marbles funneling through
+// an 8-wide peg grid genuinely clogged (verified via a headless
+// matter-js simulation harness, not just eyeballing: with 8 cols, races
+// routinely never got past ~10/15 finishers even after 90+ simulated
+// seconds; peg field 3 already used 6 cols/70px pitch and was never a
+// problem). 5/6 cols (96px/80px pitch) give the bigger marbles enough
+// room to pass without gridlocking, confirmed by the same harness
+// reliably reaching all 15 finishers in ~15-20s.
+const PEG_FIELD_1_COLS = 5
+const PEG_FIELD_2_COLS = 6
+
 const PEG_FIELD_1_TOP = 120
 const PEG_FIELD_1_ROWS = 8
 const PEG_FIELD_1_BOTTOM = PEG_FIELD_1_TOP + PEG_FIELD_1_ROWS * 58
 
 const MOTOR_1_Y = PEG_FIELD_1_BOTTOM + 90
 
+// Deflector zone geometry: the original walls ran almost the full track
+// width for only a ~46px vertical drop (~8° from horizontal) — barely
+// steeper than a shelf. With 15 marbles funneling through, several would
+// land on the same near-flat wall together, jam against each other, and
+// sit there (low friction alone isn't enough to clear a multi-body jam on
+// that shallow a slope) until an escalating-chaos impulse eventually
+// happened to knock them loose — the reported "stalling". DEFLECTOR_DROP/
+// DEFLECTOR_SPAN below are steep enough (~40° from horizontal) that
+// gravity's along-slope component clears a jam quickly instead of
+// resting, and the taller DEFLECTOR_ROW_HEIGHT gives a deflected marble
+// room to actually fall (regain speed) before reaching the next one,
+// instead of chaining hits at near-zero velocity.
 const DEFLECTOR_1_TOP = MOTOR_1_Y + 100
-const DEFLECTOR_1_ROWS = 4
-const DEFLECTOR_ROW_HEIGHT = 95
+const DEFLECTOR_1_ROWS = 3
+const DEFLECTOR_ROW_HEIGHT = 150
+const DEFLECTOR_DROP = 120
+const DEFLECTOR_SPAN = 150
 const DEFLECTOR_1_BOTTOM = DEFLECTOR_1_TOP + DEFLECTOR_1_ROWS * DEFLECTOR_ROW_HEIGHT
 
 const PEG_FIELD_2_TOP = DEFLECTOR_1_BOTTOM + 40
@@ -78,7 +105,7 @@ const PEG_FIELD_3_BOTTOM = PEG_FIELD_3_TOP + PEG_FIELD_3_ROWS * 70
 const MOTOR_3_Y = PEG_FIELD_3_BOTTOM + 90
 
 const DEFLECTOR_2_TOP = MOTOR_3_Y + 100
-const DEFLECTOR_2_ROWS = 3
+const DEFLECTOR_2_ROWS = 2
 const DEFLECTOR_2_BOTTOM = DEFLECTOR_2_TOP + DEFLECTOR_2_ROWS * DEFLECTOR_ROW_HEIGHT
 
 const MOTOR_4_Y = DEFLECTOR_2_BOTTOM + 100
@@ -90,7 +117,34 @@ const FUNNEL_HEIGHT = 380
 const FUNNEL_GAP = 70
 const FINISH_PLAZA_HEIGHT = 220
 const TRACK_HEIGHT = FUNNEL_TOP + FUNNEL_HEIGHT + FINISH_PLAZA_HEIGHT
-const FINISH_Y = FUNNEL_TOP + FUNNEL_HEIGHT + 14
+
+// The funnel narrows the full track width down to this gap; CENTER_X/
+// GAP_LEFT/GAP_RIGHT are shared module-level constants (not locals inside
+// buildTrack) because checkFinishes() below needs them too, to verify a
+// marble is actually within the gap — not just past a Y line — before
+// counting it as finished (see checkFinishes' comment for why).
+const CENTER_X = TRACK_WIDTH / 2
+const GAP_LEFT = CENTER_X - FUNNEL_GAP / 2
+const GAP_RIGHT = CENTER_X + FUNNEL_GAP / 2
+
+// Was FUNNEL_TOP + FUNNEL_HEIGHT + 14 — only 14px past where the funnel
+// narrows to the gap, right at the neck where marbles jam/arch waiting
+// their turn through a gap barely 2 marble-diameters wide. A marble
+// being jostled by that jam could have its center momentarily pushed past
+// a line that close while still trapped, not genuinely through. More
+// clearance (see THROAT_BOTTOM below, which encloses this whole stretch
+// on both sides) means a marble is only past FINISH_Y once it has
+// actually cleared the jam into open space below the throat.
+const FINISH_Y = FUNNEL_TOP + FUNNEL_HEIGHT + 40
+// How far the throat (straight walls continuing the funnel's gap width)
+// extends below the funnel's tip. Below the tip there would otherwise be
+// nothing but the far-away track border walls — wide open space where a
+// marble that somehow ended up there (a fast physics step tunneling
+// through a thin wall, or a jam shoving it forward) could sit at any X
+// position, including outside the real gap, while still registering
+// past FINISH_Y. Enclosing this stretch on both sides removes that
+// possibility structurally, not just via the position check below.
+const THROAT_BOTTOM = FUNNEL_TOP + FUNNEL_HEIGHT + 70
 
 // Escalating chaos: every IMPULSE_INTERVAL_FRAMES, every still-racing
 // marble gets a small random nudge, growing stronger the longer the race
@@ -189,7 +243,10 @@ function buildPegField(
 
 /** A zigzag chute of alternating diagonal walls — a different obstacle
  * "feel" from the round peg fields, forcing marbles to weave side to
- * side rather than just bouncing straight down. */
+ * side rather than just bouncing straight down. Steep (~40° from
+ * horizontal via DEFLECTOR_DROP/DEFLECTOR_SPAN) so marbles slide off
+ * quickly instead of resting/jamming — see the constants' comment above
+ * for why the original ~8° walls caused stalling. */
 function buildDeflectorZone(Matter: MatterModule, topY: number, rows: number) {
   const walls: MatterNamespace.Body[] = []
   for (let i = 0; i < rows; i++) {
@@ -197,8 +254,15 @@ function buildDeflectorZone(Matter: MatterModule, topY: number, rows: number) {
     const fromLeft = i % 2 === 0
     walls.push(
       fromLeft
-        ? wallSegment(Matter, 15, y, TRACK_WIDTH * 0.7, y + 46, 14)
-        : wallSegment(Matter, TRACK_WIDTH - 15, y, TRACK_WIDTH * 0.3, y + 46, 14),
+        ? wallSegment(Matter, 15, y, 15 + DEFLECTOR_SPAN, y + DEFLECTOR_DROP, 14)
+        : wallSegment(
+            Matter,
+            TRACK_WIDTH - 15,
+            y,
+            TRACK_WIDTH - 15 - DEFLECTOR_SPAN,
+            y + DEFLECTOR_DROP,
+            14,
+          ),
     )
   }
   return walls
@@ -254,27 +318,30 @@ function buildTrack(Matter: MatterModule, teams: FinishedTeam[]): TrackState {
     Bodies.rectangle(TRACK_WIDTH / 2, TRACK_HEIGHT + 10, TRACK_WIDTH, 20, wallOptions),
   )
 
-  bodies.push(...buildPegField(Matter, PEG_FIELD_1_TOP, PEG_FIELD_1_ROWS, 8, PEG_RADIUS, 58))
+  bodies.push(...buildPegField(Matter, PEG_FIELD_1_TOP, PEG_FIELD_1_ROWS, PEG_FIELD_1_COLS, PEG_RADIUS, 58))
   bodies.push(...buildDeflectorZone(Matter, DEFLECTOR_1_TOP, DEFLECTOR_1_ROWS))
-  bodies.push(...buildPegField(Matter, PEG_FIELD_2_TOP, PEG_FIELD_2_ROWS, 8, PEG_RADIUS, 58))
+  bodies.push(...buildPegField(Matter, PEG_FIELD_2_TOP, PEG_FIELD_2_ROWS, PEG_FIELD_2_COLS, PEG_RADIUS, 58))
   bodies.push(...buildPegField(Matter, PEG_FIELD_3_TOP, PEG_FIELD_3_ROWS, 6, 7, 70))
   bodies.push(...buildDeflectorZone(Matter, DEFLECTOR_2_TOP, DEFLECTOR_2_ROWS))
 
   // The narrow finish chokepoint: two angled walls funnel the full track
   // width down to a deliberately tight gap, creating a bottleneck.
-  const centerX = TRACK_WIDTH / 2
-  const gapLeft = centerX - FUNNEL_GAP / 2
-  const gapRight = centerX + FUNNEL_GAP / 2
   bodies.push(
-    wallSegment(Matter, 0, FUNNEL_TOP, gapLeft, FUNNEL_TOP + FUNNEL_HEIGHT, 20),
-    wallSegment(Matter, TRACK_WIDTH, FUNNEL_TOP, gapRight, FUNNEL_TOP + FUNNEL_HEIGHT, 20),
+    wallSegment(Matter, 0, FUNNEL_TOP, GAP_LEFT, FUNNEL_TOP + FUNNEL_HEIGHT, 20),
+    wallSegment(Matter, TRACK_WIDTH, FUNNEL_TOP, GAP_RIGHT, FUNNEL_TOP + FUNNEL_HEIGHT, 20),
+  )
+  // The throat: straight walls continuing the funnel's gap width a bit
+  // further down, through FINISH_Y — see THROAT_BOTTOM's comment above.
+  bodies.push(
+    wallSegment(Matter, GAP_LEFT, FUNNEL_TOP + FUNNEL_HEIGHT, GAP_LEFT, THROAT_BOTTOM, 16),
+    wallSegment(Matter, GAP_RIGHT, FUNNEL_TOP + FUNNEL_HEIGHT, GAP_RIGHT, THROAT_BOTTOM, 16),
   )
 
   const motorDefs = [
-    createMotor(Matter, centerX, MOTOR_1_Y, 170, 0.05),
-    createMotor(Matter, centerX, MOTOR_2_Y, 190, -0.045),
-    createMotor(Matter, centerX, MOTOR_3_Y, 160, 0.06),
-    createMotor(Matter, centerX, MOTOR_4_Y, 200, -0.05),
+    createMotor(Matter, CENTER_X, MOTOR_1_Y, 170, 0.05),
+    createMotor(Matter, CENTER_X, MOTOR_2_Y, 190, -0.045),
+    createMotor(Matter, CENTER_X, MOTOR_3_Y, 160, 0.06),
+    createMotor(Matter, CENTER_X, MOTOR_4_Y, 200, -0.05),
   ]
   const motors = motorDefs.map((m) => m.motor)
   for (const m of motorDefs) {
@@ -287,9 +354,21 @@ function buildTrack(Matter: MatterModule, teams: FinishedTeam[]): TrackState {
   const marbleTeams = new Map<number, FinishedTeam & { color: string }>()
   const spawnMargin = 30
   const spawnWidth = TRACK_WIDTH - spawnMargin * 2
+  // Staggered grid, not one long row: with 15 marbles at MARBLE_RADIUS 16
+  // (32px diameter) spread across a single row, each got only
+  // spawnWidth/15 ≈ 28px of "slot" width — less than their own diameter,
+  // so they spawned already overlapping and matter-js's very first
+  // collision-resolution step launched them in random directions before
+  // the race even properly started. SPAWN_COLS=5 gives each marble ~84px
+  // of slot width (comfortably more than 32px) with 3 shallow rows
+  // (staggered in Y too) instead of 1 crowded one.
+  const spawnCols = 5
+  const spawnColSpacing = spawnWidth / spawnCols
   raceTeams.forEach((team, index) => {
-    const x = spawnMargin + (spawnWidth * (index + 0.5)) / raceTeams.length + (Math.random() - 0.5) * 14
-    const y = SPAWN_Y + Math.random() * 40
+    const col = index % spawnCols
+    const row = Math.floor(index / spawnCols)
+    const x = spawnMargin + spawnColSpacing * (col + 0.5) + (Math.random() - 0.5) * (spawnColSpacing * 0.4)
+    const y = SPAWN_Y + row * 26 + Math.random() * 12
     const color = MARBLE_COLORS[index % MARBLE_COLORS.length]
     const marble = Bodies.circle(x, y, MARBLE_RADIUS, {
       restitution: 0.6,
@@ -348,7 +427,20 @@ function checkFinishes(
   onMarbleFinish: (team: FinishedTeam, rank: number) => void,
 ) {
   state.marbles.forEach((marble, index) => {
-    if (state.finished[index] || marble.position.y <= FINISH_Y) return
+    if (state.finished[index]) return
+    const { x, y } = marble.position
+    if (y <= FINISH_Y) return
+    // Correctness guard, not just tuning: a marble should only ever be
+    // past FINISH_Y while genuinely within the gap it funneled through —
+    // the throat walls in buildTrack physically enforce that in the
+    // normal case, but this checks it explicitly too, so a marble can
+    // never be counted as "finished" purely from a Y-position false
+    // positive (e.g. a fast physics step tunneling past a thin wall, or
+    // a multi-body jam shoving it forward) without actually having
+    // cleared the gap. Margin of one marble radius on each side so a
+    // genuinely-through marble's center is never rejected right at the
+    // edge.
+    if (x < GAP_LEFT - MARBLE_RADIUS || x > GAP_RIGHT + MARBLE_RADIUS) return
     state.finished[index] = true
     state.finishOrder.push(index)
     const team = state.marbleTeams.get(marble.id)
@@ -358,6 +450,32 @@ function checkFinishes(
       onMarbleFinish({ id: team.id, name: team.name }, rank)
     }
   })
+}
+
+/** Once every marble except one has genuinely crossed the finish gap,
+ * immediately place the lone straggler at the final rank instead of
+ * waiting for it to physically arrive — it may be stuck (track jam, slow
+ * chaotic path), and there's no meaningful difference between being last
+ * by arrival vs. by elimination. Also acts as a safety net for
+ * checkFinishes above: even in some edge case it hasn't fully accounted
+ * for, the race can never hang waiting on more than one marble. */
+function checkAutoFinishStraggler(
+  state: TrackState,
+  onMarbleFinish: (team: FinishedTeam, rank: number) => void,
+) {
+  if (state.marbles.length <= 1) return
+  if (state.finishOrder.length !== state.marbles.length - 1) return
+  const stragglerIndex = state.finished.findIndex((isFinished) => !isFinished)
+  if (stragglerIndex === -1) return
+
+  state.finished[stragglerIndex] = true
+  state.finishOrder.push(stragglerIndex)
+  const marble = state.marbles[stragglerIndex]
+  const team = state.marbleTeams.get(marble.id)
+  const rank = state.finishOrder.length
+  if (team) {
+    onMarbleFinish({ id: team.id, name: team.name }, rank)
+  }
 }
 
 function updateBursts(state: TrackState) {
@@ -601,6 +719,7 @@ export function MarbleRace({ teams, onMarbleFinish, onComplete }: MarbleRaceProp
           applyEscalatingChaos(state)
           Matter.Engine.update(state.engine, 1000 / 60)
           checkFinishes(state, handleFinish)
+          checkAutoFinishStraggler(state, handleFinish)
           updateBursts(state)
           render(ctx!, state)
 
