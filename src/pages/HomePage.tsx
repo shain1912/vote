@@ -12,7 +12,17 @@ export function HomePage() {
           <div className="entry-card__choices">
             <Link to="/invest" className="choice-button">
               <span className="choice-button__title">학생으로 시작하기</span>
-              <span className="choice-button__desc">소속 팀과 이름을 입력하면 투자 페이지로 이동합니다.</span>
+              <span className="choice-button__desc">
+                소속 팀과 이름을 입력하면 투자 페이지로 이동합니다. 발표자료 등록·보기는 아래 메뉴를
+                이용하세요.
+              </span>
+            </Link>
+            <Link to="/present" className="choice-button">
+              <span className="choice-button__title">발표자료 등록·보기</span>
+              <span className="choice-button__desc">
+                소속 팀과 이름을 입력하면 우리 팀 발표자료를 등록하고 다른 팀 발표자료를 열어볼 수
+                있습니다.
+              </span>
             </Link>
             <Link to="/judge" className="choice-button">
               <span className="choice-button__title">심사위원으로 시작하기</span>

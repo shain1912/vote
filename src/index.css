@@ -409,6 +409,31 @@ code {
   font-style: italic;
 }
 
+/* A more prominent "open in new tab" action for the /present team list —
+   distinct from the small inline .presentation-link used while investing. */
+.open-presentation-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.open-presentation-button--disabled {
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  opacity: 0.7;
+  font-style: italic;
+  cursor: not-allowed;
+}
+
 input,
 button {
   font: inherit;
@@ -486,6 +511,10 @@ button:disabled {
   }
 
   .amount-field input {
+    width: 100%;
+  }
+
+  .open-presentation-button {
     width: 100%;
   }
 }

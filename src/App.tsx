@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage'
 import { JudgePage } from './pages/judge/JudgePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { StudentInvestPage } from './pages/student/StudentInvestPage'
+import { StudentPresentPage } from './pages/student/StudentPresentPage'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
 
         <Route path="/invest" element={<StudentInvestPage />} />
+        <Route path="/present" element={<StudentPresentPage />} />
         <Route path="/judge" element={<JudgePage />} />
 
         {/* Bare /admin isn't a guessable shortcut to results: it just

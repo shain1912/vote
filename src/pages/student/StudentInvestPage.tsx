@@ -1,62 +1,28 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { BrandHeader } from '../../components/BrandHeader'
 import { PresentationLink } from '../../components/PresentationLink'
-import {
-  getErrorMessage,
-  getMyInvestments,
-  listTeams,
-  startAsStudent,
-  submitInvestment,
-  submitPresentationUrl,
-} from '../../lib/api'
-import type { StudentIdentity, TeamSummary } from '../../lib/types'
+import { StudentEntryScreen } from '../../components/StudentEntryScreen'
+import { getErrorMessage, getMyInvestments, submitInvestment } from '../../lib/api'
+import { IDLE_STATUS, useStudentSession, type FieldStatus } from '../../lib/useStudentSession'
 
 // Fixed per-student budget for this event (confirmed, not a placeholder).
 const PERSONAL_BUDGET = 10000
 
-// Kept only for this browser tab's session, so a page refresh resumes
-// without retyping — not a login credential (there is no per-person
-// link/code anymore). start_as_student would happily resume the same
-// person again anyway if this were lost, as long as they pick the same
-// team + type the same name.
-const SESSION_KEY = 'makerthon:student-identity'
-
-interface FieldStatus {
-  state: 'idle' | 'saving' | 'saved' | 'error'
-  message?: string
-}
-
-const IDLE_STATUS: FieldStatus = { state: 'idle' }
-
-function loadStoredIdentity(): StudentIdentity | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY)
-    return raw ? (JSON.parse(raw) as StudentIdentity) : null
-  } catch {
-    return null
-  }
-}
-
-function storeIdentity(identity: StudentIdentity | null) {
-  try {
-    if (identity) sessionStorage.setItem(SESSION_KEY, JSON.stringify(identity))
-    else sessionStorage.removeItem(SESSION_KEY)
-  } catch {
-    // sessionStorage can be unavailable in some environments — not fatal.
-  }
-}
-
 export function StudentInvestPage() {
-  const [teams, setTeams] = useState<TeamSummary[]>([])
-  const [teamsLoading, setTeamsLoading] = useState(true)
-  const [teamsError, setTeamsError] = useState<string | null>(null)
-
-  const [student, setStudent] = useState<StudentIdentity | null>(() => loadStoredIdentity())
-
-  // Entry form (team + name)
-  const [selectedTeamId, setSelectedTeamId] = useState('')
-  const [nameInput, setNameInput] = useState('')
-  const [entryStatus, setEntryStatus] = useState<FieldStatus>(IDLE_STATUS)
+  const {
+    teams,
+    teamsLoading,
+    teamsError,
+    student,
+    selectedTeamId,
+    setSelectedTeamId,
+    nameInput,
+    setNameInput,
+    entryStatus,
+    setEntryStatus,
+    handleStart,
+    handleSwitchUser: switchUser,
+  } = useStudentSession()
 
   // Investment state (once identified)
   const [committedAmounts, setCommittedAmounts] = useState<Record<string, number>>({})
@@ -64,30 +30,6 @@ export function StudentInvestPage() {
   const [rowStatus, setRowStatus] = useState<Record<string, FieldStatus>>({})
   const [investmentsLoading, setInvestmentsLoading] = useState(false)
   const [investmentsError, setInvestmentsError] = useState<string | null>(null)
-
-  const [presentationUrlInput, setPresentationUrlInput] = useState('')
-  const [presentationStatus, setPresentationStatus] = useState<FieldStatus>(IDLE_STATUS)
-  const presentationInitialized = useRef(false)
-
-  // Load all 15 teams once — needed for both the entry <select> and the invest list.
-  useEffect(() => {
-    let cancelled = false
-    listTeams()
-      .then((rows) => {
-        if (cancelled) return
-        setTeams(rows)
-        setSelectedTeamId((previous) => previous || rows[0]?.id || '')
-      })
-      .catch((err) => {
-        if (!cancelled) setTeamsError(getErrorMessage(err))
-      })
-      .finally(() => {
-        if (!cancelled) setTeamsLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Once identified, load this student's existing investments.
   useEffect(() => {
@@ -111,47 +53,11 @@ export function StudentInvestPage() {
     }
   }, [student])
 
-  // Prefill the presentation-url input once, from the student's own team.
-  useEffect(() => {
-    if (!student || presentationInitialized.current) return
-    const myTeam = teams.find((team) => team.id === student.team_id)
-    if (!myTeam) return
-    setPresentationUrlInput(myTeam.presentation_url ?? '')
-    presentationInitialized.current = true
-  }, [teams, student])
-
-  async function handleStart(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const trimmedName = nameInput.trim()
-    if (!trimmedName) {
-      setEntryStatus({ state: 'error', message: '이름을 입력해주세요.' })
-      return
-    }
-    if (!selectedTeamId) {
-      setEntryStatus({ state: 'error', message: '팀을 선택해주세요.' })
-      return
-    }
-
-    setEntryStatus({ state: 'saving' })
-    try {
-      const identity = await startAsStudent(selectedTeamId, trimmedName)
-      storeIdentity(identity)
-      setStudent(identity)
-      setEntryStatus(IDLE_STATUS)
-    } catch (err) {
-      setEntryStatus({ state: 'error', message: getErrorMessage(err) })
-    }
-  }
-
   function handleSwitchUser() {
-    storeIdentity(null)
-    setStudent(null)
+    switchUser()
     setCommittedAmounts({})
     setDraftAmounts({})
     setRowStatus({})
-    setPresentationUrlInput('')
-    setNameInput('')
-    presentationInitialized.current = false
   }
 
   const remainingBudget =
@@ -188,24 +94,6 @@ export function StudentInvestPage() {
     }
   }
 
-  async function handleSubmitPresentation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!student) return
-
-    setPresentationStatus({ state: 'saving' })
-    try {
-      await submitPresentationUrl(student.student_id, presentationUrlInput)
-      setTeams((previous) =>
-        previous.map((team) =>
-          team.id === student.team_id ? { ...team, presentation_url: presentationUrlInput } : team,
-        ),
-      )
-      setPresentationStatus({ state: 'saved' })
-    } catch (err) {
-      setPresentationStatus({ state: 'error', message: getErrorMessage(err) })
-    }
-  }
-
   if (teamsLoading) {
     return (
       <>
@@ -229,48 +117,18 @@ export function StudentInvestPage() {
 
   if (!student) {
     return (
-      <>
-        <BrandHeader />
-        <div className="centered-stage">
-          <div className="entry-card">
-            <h1>학생으로 시작하기</h1>
-            <p className="hint-text">
-              소속 팀과 이름을 입력하고 시작하세요. 이후 같은 팀 + 같은 이름으로 다시 들어오면 기존
-              투자 내역이 그대로 이어집니다.
-            </p>
-            <form onSubmit={handleStart} className="stacked-form">
-              <label htmlFor="student-team">소속 팀</label>
-              <select
-                id="student-team"
-                value={selectedTeamId}
-                onChange={(event) => setSelectedTeamId(event.target.value)}
-              >
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-
-              <label htmlFor="student-name">이름</label>
-              <input
-                id="student-name"
-                type="text"
-                value={nameInput}
-                onChange={(event) => {
-                  setNameInput(event.target.value)
-                  setEntryStatus(IDLE_STATUS)
-                }}
-              />
-
-              <button type="submit" disabled={entryStatus.state === 'saving'}>
-                {entryStatus.state === 'saving' ? '확인 중...' : '시작'}
-              </button>
-              {entryStatus.state === 'error' && <p className="error-text">{entryStatus.message}</p>}
-            </form>
-          </div>
-        </div>
-      </>
+      <StudentEntryScreen
+        teams={teams}
+        selectedTeamId={selectedTeamId}
+        onSelectTeam={setSelectedTeamId}
+        nameInput={nameInput}
+        onNameChange={(name) => {
+          setNameInput(name)
+          setEntryStatus(IDLE_STATUS)
+        }}
+        entryStatus={entryStatus}
+        onSubmit={handleStart}
+      />
     )
   }
 
@@ -300,34 +158,6 @@ export function StudentInvestPage() {
             {remainingBudget.toLocaleString()} / {PERSONAL_BUDGET.toLocaleString()}
           </p>
           <p className="hint-text">남은 예산 / 전체 예산 (포인트)</p>
-        </section>
-
-        <section className="panel">
-          <h2>우리 팀 발표자료 제출</h2>
-          <p className="hint-text">
-            다른 팀 학생과 심사위원이 확인할 수 있는 우리 팀({myTeam?.name ?? student.team_name})의
-            발표자료 링크를 등록하세요. 팀원 누구나 제출/수정할 수 있습니다.
-          </p>
-          <form onSubmit={handleSubmitPresentation} className="stacked-form">
-            <label htmlFor="presentation-url">발표자료 링크</label>
-            <input
-              id="presentation-url"
-              type="url"
-              placeholder="https://..."
-              value={presentationUrlInput}
-              onChange={(event) => {
-                setPresentationUrlInput(event.target.value)
-                setPresentationStatus(IDLE_STATUS)
-              }}
-            />
-            <button type="submit" disabled={presentationStatus.state === 'saving'}>
-              {presentationStatus.state === 'saving' ? '저장 중...' : '발표자료 링크 저장'}
-            </button>
-            {presentationStatus.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
-            {presentationStatus.state === 'error' && (
-              <p className="error-text">{presentationStatus.message}</p>
-            )}
-          </form>
         </section>
 
         <section className="panel">
