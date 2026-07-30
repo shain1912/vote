@@ -45,26 +45,35 @@ create table if not exists judge_scores (
 
 -- Anon-callable, shared:
 --   list_teams() -> table (id uuid, name text, presentation_url text)
+--     15 rows, pre-seeded as "팀 1".."팀 15" placeholder names — the admin
+--     renames them later; no frontend change needed for that.
 --
--- Anon-callable, student flow:
---   get_student_by_code(p_access_code text)
---     -> table (student_id uuid, student_name text, team_id uuid, team_name text)
---        zero rows = invalid/expired code
---   get_my_investments(p_access_code text) -> table (team_id uuid, amount integer)
---   submit_investment(p_access_code text, p_team_id uuid, p_amount integer) -> void
+-- Anon-callable, student flow (no per-person link/code — a student picks
+-- their team + types their name):
+--   start_as_student(p_team_id uuid, p_name text)
+--     -> student_id uuid, student_name text, team_id uuid, team_name text
+--        Finds an existing row by (team_id, exact trimmed name), or
+--        creates one on first visit. Always succeeds (no "invalid code"
+--        case) — repeat visits with the same team + name resume the same
+--        budget/investments.
+--   get_my_investments(p_student_id uuid) -> table (team_id uuid, amount integer)
+--   submit_investment(p_student_id uuid, p_team_id uuid, p_amount integer) -> void
 --     enforces: amount >= 0, per-student total <= 10000, cannot invest in
 --     own team_id. Raises a human-readable Postgres exception on violation.
---   submit_presentation_url(p_access_code text, p_url text) -> void
+--   submit_presentation_url(p_student_id uuid, p_url text) -> void
 --     updates the caller's own team's presentation_url (team looked up
---     server-side from the access_code).
+--     server-side from the student_id).
 --
--- Anon-callable, judge flow:
---   get_judge_by_code(p_access_code text) -> table (judge_id uuid, judge_name text)
---     zero rows = invalid/expired code
---   get_my_scores(p_access_code text)
+-- Anon-callable, judge flow (no per-judge code — name + a single shared
+-- passphrase, since judge scores are high-stakes and open self-registration
+-- would let anyone submit fake scores):
+--   start_as_judge(p_name text, p_passphrase text) -> judge_id uuid, judge_name text
+--     wrong passphrase raises a Postgres exception ("invalid passphrase"),
+--     surfaced as a normal form error in the UI, not a crash.
+--   get_my_scores(p_judge_id uuid)
 --     -> table (team_id uuid, problem_impact int, technical_completeness int,
 --               feasibility_scalability int, ux_presentation int)
---   submit_judge_score(p_access_code text, p_team_id uuid, p_problem_impact int,
+--   submit_judge_score(p_judge_id uuid, p_team_id uuid, p_problem_impact int,
 --                       p_technical_completeness int, p_feasibility_scalability int,
 --                       p_ux_presentation int) -> void
 --

@@ -29,13 +29,13 @@ src/
     AdminRouteGuard.tsx  Redirects to /admin/login if there's no admin session
     PresentationLink.tsx "발표자료 보기" link, or fallback text if not submitted
   pages/
-    HomePage.tsx                  "/" — explains this site is invite-link only
+    HomePage.tsx                  "/" — links to /invest and /judge
     NotFoundPage.tsx              catch-all 404
-    student/StudentInvestPage.tsx "/t/:code" — a student's personal invest + team presentation-link page
-    judge/JudgePage.tsx           "/j/:code" — a judge's scoring page (4-criteria rubric)
+    student/StudentInvestPage.tsx "/invest" — team+name entry screen, then invest + team presentation-link page
+    judge/JudgePage.tsx           "/judge" — name+passphrase entry screen, then scoring page (4-criteria rubric)
     admin/AdminLoginPage.tsx      "/admin/login" — Supabase Auth email/password sign-in
     admin/AdminDashboardPage.tsx  "/admin/dashboard" — team + investor leaderboards (admin only)
-  App.tsx    Route table
+  App.tsx    Route table (HashRouter — see "Deploying" for why)
   main.tsx   Entry point
 
 supabase/
@@ -57,35 +57,47 @@ supabase/
 
 | Route | Who | Auth |
 |---|---|---|
-| `/` | anyone | none |
-| `/t/:code` | a **student**, via their personal unique invite link | none — the code itself is the "login" |
-| `/j/:code` | a judge, via their unique invite link | none — the code itself is the "login" |
+| `/` | anyone | none — links to `/invest` and `/judge` |
+| `/invest` | a **student** — picks their team from a dropdown and types their name | none; see below |
+| `/judge` | a judge — types their name and a shared passphrase | shared passphrase only, no per-person account |
 | `/admin` | admin | redirects to `/admin/dashboard` |
 | `/admin/login` | admin | Supabase Auth email/password form |
 | `/admin/dashboard` | admin | requires an authenticated Supabase session (see `AdminRouteGuard`); redirects to `/admin/login` otherwise |
 
-Students and judges never sign up — an admin (via direct Supabase access,
-outside this app) creates their rows and hands out the `access_code`
-links. There is intentionally no self-registration flow. Teams themselves
-have no login of their own: any student on a team can view/update that
-team's `presentation_url` from their personal `/t/:code` page, since it's
-shared per team rather than per student.
+There is no per-person link/code anymore (an earlier version of this app
+used `/t/:code` and `/j/:code` invite links — that model was dropped as
+operationally too complicated for a live event). A student instead picks
+their team and types their name on `/invest`; `start_as_student` finds an
+existing row for that exact (team, trimmed name) pair or creates one, so
+leaving and coming back with the same team + name resumes the same
+budget/investments. A judge types their name plus a single passphrase
+shared with all 3 judges (not a per-judge secret) on `/judge`; wrong
+passphrase is a normal form error, not a crash. The identity returned by
+either flow is cached in `sessionStorage` for that browser tab only, so a
+page refresh doesn't force retyping — it's a convenience, not a security
+boundary; anyone can always re-enter their own team+name or the shared
+passphrase again. Teams themselves have no login of their own: any student
+on a team can view/update that team's `presentation_url` once they've
+entered as a student on that team.
 
 ## How data flows
 
-- **Student page** (`/t/:code`): `get_student_by_code` resolves the code
-  (empty result = "invalid link" state). Then `list_teams` +
-  `get_my_investments` load the investable teams and the student's current
-  allocations. Remaining budget is computed client-side as
-  `10000 - sum(amounts)`. Each team row has its own **저장 (save)** button
-  that calls `submit_investment` for just that team — not one bulk submit —
-  matching the RPC's per-row upsert semantics. The presentation-link form
-  calls `submit_presentation_url`.
-- **Judge page** (`/j/:code`): `get_judge_by_code` + `list_teams` +
-  `get_my_scores` load state; the 4 rubric fields are 문제정의/임팩트
-  (0–30), 기술완성도 (0–30), 실현가능성/확장성 (0–25), UX/발표 (0–15,
-  100 total). Each team has its own **채점 저장** button calling
-  `submit_judge_score`.
+- **Student flow** (`/invest`): `list_teams` populates the team `<select>`
+  on first load. Submitting the entry form calls `start_as_student`; the
+  returned `student_id` (kept in state + `sessionStorage`) is then used for
+  `get_my_investments` (prefill) and every subsequent write. Remaining
+  budget is computed client-side as `10000 - sum(amounts)`. Each team row
+  has its own **저장 (save)** button that calls `submit_investment` for
+  just that team — not one bulk submit — matching the RPC's per-row upsert
+  semantics. The presentation-link form calls `submit_presentation_url`.
+- **Judge flow** (`/judge`): `list_teams` loads up front; submitting the
+  entry form (name + passphrase) calls `start_as_judge` — a wrong
+  passphrase shows inline as "암호가 올바르지 않습니다"-style RPC error
+  text, not a crash. The returned `judge_id` is then used for
+  `get_my_scores` (prefill) and `submit_judge_score`. The 4 rubric fields
+  are 문제정의/임팩트 (0–30), 기술완성도 (0–30), 실현가능성/확장성
+  (0–25), UX/발표 (0–15, 100 total). Each team has its own **채점 저장**
+  button.
 - **Admin dashboard** (`/admin/dashboard`, requires a Supabase Auth
   session): `get_team_leaderboard` (pre-sorted by `final_score` desc) and
   `get_investor_leaderboard` (pre-sorted by `profit` desc; top 8 rows are
@@ -129,7 +141,12 @@ secrets (`Settings > Secrets and variables > Actions`) named
 
 Deploys happen automatically on push to `main` via
 `.github/workflows/deploy.yml`, using `actions/upload-pages-artifact` +
-`actions/deploy-pages` (no `gh-pages` branch). To enable it:
+`actions/deploy-pages` (no `gh-pages` branch). Routing uses React Router's
+`HashRouter` (URLs like `/#/invest`) rather than `BrowserRouter`, because
+GitHub Pages is static hosting with no server-side rewrite — a
+`BrowserRouter` URL like `/invest` opened cold (not already loaded as the
+SPA) would 404 instead of reaching the app; hash routes always resolve to
+`index.html` first. To enable the deploy:
 
 1. In the GitHub repo settings, set **Pages > Source** to "GitHub Actions".
 2. Add the two repo secrets mentioned above.

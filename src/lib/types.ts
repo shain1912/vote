@@ -10,7 +10,7 @@ export interface TeamSummary {
   presentation_url: string | null
 }
 
-/** Row from `get_student_by_code(p_access_code)`. Empty result = invalid/expired link. */
+/** Result of `start_as_student(p_team_id, p_name)` — creates the student on first visit, resumes on repeat visits with the same team + exact trimmed name. */
 export interface StudentIdentity {
   student_id: string
   student_name: string
@@ -18,19 +18,19 @@ export interface StudentIdentity {
   team_name: string
 }
 
-/** Row from `get_judge_by_code(p_access_code)`. Empty result = invalid/expired link. */
+/** Result of `start_as_judge(p_name, p_passphrase)` — gated by a single shared passphrase, not a per-person code. */
 export interface JudgeIdentity {
   judge_id: string
   judge_name: string
 }
 
-/** Row from `get_my_investments(p_access_code)`. */
+/** Row from `get_my_investments(p_student_id)`. */
 export interface InvestmentRow {
   team_id: string
   amount: number
 }
 
-/** Row from `get_my_scores(p_access_code)`. */
+/** Row from `get_my_scores(p_judge_id)`. */
 export interface JudgeScoreRow {
   team_id: string
   problem_impact: number

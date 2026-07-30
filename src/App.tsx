@@ -13,8 +13,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
 
-        <Route path="/t/:code" element={<StudentInvestPage />} />
-        <Route path="/j/:code" element={<JudgePage />} />
+        <Route path="/invest" element={<StudentInvestPage />} />
+        <Route path="/judge" element={<JudgePage />} />
 
         {/* Bare /admin isn't a guessable shortcut to results: it just
             forwards to /admin/dashboard, which itself redirects to

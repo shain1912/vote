@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
 import { PresentationLink } from '../../components/PresentationLink'
 import {
   getErrorMessage,
-  getJudgeByCode,
   getMyScores,
   listTeams,
+  startAsJudge,
   submitJudgeScore,
 } from '../../lib/api'
 import type { JudgeIdentity, TeamSummary } from '../../lib/types'
@@ -21,6 +20,10 @@ const CRITERIA = [
 type CriteriaKey = (typeof CRITERIA)[number]['key']
 type ScoreInputs = Record<string, Partial<Record<CriteriaKey, string>>>
 
+// Kept only for this browser tab's session, so a page refresh resumes
+// without retyping the passphrase again.
+const SESSION_KEY = 'makerthon:judge-identity'
+
 interface FieldStatus {
   state: 'idle' | 'saving' | 'saved' | 'error'
   message?: string
@@ -28,48 +31,72 @@ interface FieldStatus {
 
 const IDLE_STATUS: FieldStatus = { state: 'idle' }
 
-export function JudgePage() {
-  const { code } = useParams<{ code: string }>()
+function loadStoredIdentity(): JudgeIdentity | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    return raw ? (JSON.parse(raw) as JudgeIdentity) : null
+  } catch {
+    return null
+  }
+}
 
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [judge, setJudge] = useState<JudgeIdentity | null>(null)
+function storeIdentity(identity: JudgeIdentity | null) {
+  try {
+    if (identity) sessionStorage.setItem(SESSION_KEY, JSON.stringify(identity))
+    else sessionStorage.removeItem(SESSION_KEY)
+  } catch {
+    // sessionStorage can be unavailable in some environments — not fatal.
+  }
+}
+
+export function JudgePage() {
   const [teams, setTeams] = useState<TeamSummary[]>([])
+  const [teamsLoading, setTeamsLoading] = useState(true)
+  const [teamsError, setTeamsError] = useState<string | null>(null)
+
+  const [judge, setJudge] = useState<JudgeIdentity | null>(() => loadStoredIdentity())
+
+  // Entry form (name + shared passphrase)
+  const [nameInput, setNameInput] = useState('')
+  const [passphraseInput, setPassphraseInput] = useState('')
+  const [entryStatus, setEntryStatus] = useState<FieldStatus>(IDLE_STATUS)
+
+  // Scoring state (once identified)
   const [scores, setScores] = useState<ScoreInputs>({})
   const [rowStatus, setRowStatus] = useState<Record<string, FieldStatus>>({})
+  const [scoresLoading, setScoresLoading] = useState(false)
+  const [scoresError, setScoresError] = useState<string | null>(null)
 
+  // Load all 15 teams once.
   useEffect(() => {
-    if (!code) {
-      setLoadError('잘못된 링크입니다.')
-      setLoading(false)
-      return
-    }
-
     let cancelled = false
+    listTeams()
+      .then((rows) => {
+        if (!cancelled) setTeams(rows)
+      })
+      .catch((err) => {
+        if (!cancelled) setTeamsError(getErrorMessage(err))
+      })
+      .finally(() => {
+        if (!cancelled) setTeamsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-    async function load(accessCode: string) {
-      setLoading(true)
-      setLoadError(null)
-      try {
-        const judgeRows = await getJudgeByCode(accessCode)
+  // Once identified, load this judge's existing scores.
+  useEffect(() => {
+    if (!judge) return
+    let cancelled = false
+    setScoresLoading(true)
+    setScoresError(null)
+    getMyScores(judge.judge_id)
+      .then((rows) => {
         if (cancelled) return
-
-        if (judgeRows.length === 0) {
-          setJudge(null)
-          return
-        }
-
-        const [teamList, existingScores] = await Promise.all([
-          listTeams(),
-          getMyScores(accessCode),
-        ])
-        if (cancelled) return
-
-        setJudge(judgeRows[0])
-        setTeams(teamList)
         setScores(
           Object.fromEntries(
-            existingScores.map((row) => [
+            rows.map((row) => [
               row.team_id,
               {
                 problem_impact: String(row.problem_impact),
@@ -80,18 +107,49 @@ export function JudgePage() {
             ]),
           ),
         )
-      } catch (err) {
-        if (!cancelled) setLoadError(getErrorMessage(err))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    load(code)
+      })
+      .catch((err) => {
+        if (!cancelled) setScoresError(getErrorMessage(err))
+      })
+      .finally(() => {
+        if (!cancelled) setScoresLoading(false)
+      })
     return () => {
       cancelled = true
     }
-  }, [code])
+  }, [judge])
+
+  async function handleStart(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedName = nameInput.trim()
+    if (!trimmedName) {
+      setEntryStatus({ state: 'error', message: '이름을 입력해주세요.' })
+      return
+    }
+    if (!passphraseInput) {
+      setEntryStatus({ state: 'error', message: '암호를 입력해주세요.' })
+      return
+    }
+
+    setEntryStatus({ state: 'saving' })
+    try {
+      const identity = await startAsJudge(trimmedName, passphraseInput)
+      storeIdentity(identity)
+      setJudge(identity)
+      setEntryStatus(IDLE_STATUS)
+    } catch (err) {
+      setEntryStatus({ state: 'error', message: getErrorMessage(err) })
+    }
+  }
+
+  function handleSwitchUser() {
+    storeIdentity(null)
+    setJudge(null)
+    setScores({})
+    setRowStatus({})
+    setNameInput('')
+    setPassphraseInput('')
+  }
 
   function handleScoreChange(teamId: string, criteriaKey: CriteriaKey, value: string) {
     setScores((previous) => ({
@@ -102,7 +160,7 @@ export function JudgePage() {
   }
 
   async function handleSaveScore(teamId: string) {
-    if (!code) return
+    if (!judge) return
 
     const values: Record<CriteriaKey, number> = {} as Record<CriteriaKey, number>
     for (const criteria of CRITERIA) {
@@ -123,7 +181,7 @@ export function JudgePage() {
 
     setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saving' } }))
     try {
-      await submitJudgeScore(code, teamId, {
+      await submitJudgeScore(judge.judge_id, teamId, {
         problemImpact: values.problem_impact,
         technicalCompleteness: values.technical_completeness,
         feasibilityScalability: values.feasibility_scalability,
@@ -138,32 +196,68 @@ export function JudgePage() {
     }
   }
 
-  if (loading) {
+  if (teamsLoading) {
     return <p className="page-status">불러오는 중...</p>
   }
 
-  if (loadError) {
+  if (teamsError) {
     return (
       <div className="page">
         <h1>오류</h1>
-        <p className="error-text">{loadError}</p>
+        <p className="error-text">{teamsError}</p>
       </div>
     )
   }
 
   if (!judge) {
     return (
-      <div className="page">
-        <h1>유효하지 않은 링크</h1>
-        <p>이 링크는 더 이상 유효하지 않습니다. 담당자에게 새 링크를 요청하세요.</p>
+      <div className="page page--narrow">
+        <h1>심사위원으로 시작하기</h1>
+        <p className="hint-text">이름과 공유받은 암호를 입력하세요.</p>
+        <form onSubmit={handleStart} className="stacked-form">
+          <label htmlFor="judge-name">이름</label>
+          <input
+            id="judge-name"
+            type="text"
+            value={nameInput}
+            onChange={(event) => {
+              setNameInput(event.target.value)
+              setEntryStatus(IDLE_STATUS)
+            }}
+          />
+
+          <label htmlFor="judge-passphrase">암호</label>
+          <input
+            id="judge-passphrase"
+            type="password"
+            value={passphraseInput}
+            onChange={(event) => {
+              setPassphraseInput(event.target.value)
+              setEntryStatus(IDLE_STATUS)
+            }}
+          />
+
+          <button type="submit" disabled={entryStatus.state === 'saving'}>
+            {entryStatus.state === 'saving' ? '확인 중...' : '시작'}
+          </button>
+          {entryStatus.state === 'error' && <p className="error-text">{entryStatus.message}</p>}
+        </form>
       </div>
     )
   }
 
   return (
     <div className="page">
-      <h1>심사위원 채점 — {judge.judge_name}</h1>
+      <div className="page-header-row">
+        <h1>심사위원 채점 — {judge.judge_name}</h1>
+        <button type="button" onClick={handleSwitchUser}>
+          다른 사람으로 전환
+        </button>
+      </div>
       <p className="hint-text">각 팀별로 4개 항목을 입력한 뒤 저장 버튼을 눌러주세요. (총 100점)</p>
+
+      {scoresError && <p className="error-text">채점 내역을 불러오지 못했습니다: {scoresError}</p>}
+      {scoresLoading && <p className="page-status">채점 내역 불러오는 중...</p>}
 
       {teams.map((team) => {
         const status = rowStatus[team.id] ?? IDLE_STATUS

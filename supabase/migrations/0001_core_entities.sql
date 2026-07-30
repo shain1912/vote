@@ -22,8 +22,9 @@ create table if not exists teams (
 create table if not exists judges (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  -- Unique per-judge invite code used in the /j/:code link.
-  access_code text not null unique,
+  -- No access_code / per-person link anymore: a judge identifies by typing
+  -- their name plus a single shared passphrase (checked inside
+  -- start_as_judge(), mechanism/storage not exposed to the frontend).
   created_at timestamptz not null default now()
 );
 

@@ -20,9 +20,24 @@ async function call<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   return data as T
 }
 
-/** Human-readable message for anything thrown by `call`. Postgres RAISE
- * EXCEPTION messages (e.g. budget/self-investment/"forbidden" errors) come
- * through as `.message` on a PostgrestError, which extends Error. */
+/** For RPCs that always return exactly one row. PostgREST returns a bare
+ * object for functions declared to return a single row, or a one-element
+ * array for functions declared RETURNS TABLE/SETOF — handle both so this
+ * doesn't silently break if the underlying function's declaration style
+ * changes. */
+async function callSingle<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+  const data = await call<T | T[]>(fn, args)
+  if (Array.isArray(data)) {
+    if (data.length === 0) throw new Error(`${fn} returned no rows`)
+    return data[0]
+  }
+  return data
+}
+
+/** Human-readable message for anything thrown by `call`/`callSingle`.
+ * Postgres RAISE EXCEPTION messages (e.g. budget/self-investment/invalid
+ * passphrase/"forbidden" errors) come through as `.message` on a
+ * PostgrestError, which extends Error. */
 export function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
   return String(err)
@@ -33,30 +48,36 @@ export function getErrorMessage(err: unknown): string {
 export const listTeams = () => call<TeamSummary[]>('list_teams')
 
 // ---- Anon-callable: student flow ----
+// No per-person link/code anymore: a student picks their team and types
+// their name. start_as_student finds-or-creates their row so repeat visits
+// with the same team + name resume the same budget/investments.
 
-export const getStudentByCode = (accessCode: string) =>
-  call<StudentIdentity[]>('get_student_by_code', { p_access_code: accessCode })
+export const startAsStudent = (teamId: string, name: string) =>
+  callSingle<StudentIdentity>('start_as_student', { p_team_id: teamId, p_name: name })
 
-export const getMyInvestments = (accessCode: string) =>
-  call<InvestmentRow[]>('get_my_investments', { p_access_code: accessCode })
+export const getMyInvestments = (studentId: string) =>
+  call<InvestmentRow[]>('get_my_investments', { p_student_id: studentId })
 
-export const submitInvestment = (accessCode: string, teamId: string, amount: number) =>
+export const submitInvestment = (studentId: string, teamId: string, amount: number) =>
   call<void>('submit_investment', {
-    p_access_code: accessCode,
+    p_student_id: studentId,
     p_team_id: teamId,
     p_amount: amount,
   })
 
-export const submitPresentationUrl = (accessCode: string, url: string) =>
-  call<void>('submit_presentation_url', { p_access_code: accessCode, p_url: url })
+export const submitPresentationUrl = (studentId: string, url: string) =>
+  call<void>('submit_presentation_url', { p_student_id: studentId, p_url: url })
 
 // ---- Anon-callable: judge flow ----
+// Gated by a single shared passphrase (not a per-judge code), since judge
+// scores are high-stakes and open self-registration would let anyone
+// submit fake scores.
 
-export const getJudgeByCode = (accessCode: string) =>
-  call<JudgeIdentity[]>('get_judge_by_code', { p_access_code: accessCode })
+export const startAsJudge = (name: string, passphrase: string) =>
+  callSingle<JudgeIdentity>('start_as_judge', { p_name: name, p_passphrase: passphrase })
 
-export const getMyScores = (accessCode: string) =>
-  call<JudgeScoreRow[]>('get_my_scores', { p_access_code: accessCode })
+export const getMyScores = (judgeId: string) =>
+  call<JudgeScoreRow[]>('get_my_scores', { p_judge_id: judgeId })
 
 export interface JudgeScoreInput {
   problemImpact: number
@@ -65,9 +86,9 @@ export interface JudgeScoreInput {
   uxPresentation: number
 }
 
-export const submitJudgeScore = (accessCode: string, teamId: string, scores: JudgeScoreInput) =>
+export const submitJudgeScore = (judgeId: string, teamId: string, scores: JudgeScoreInput) =>
   call<void>('submit_judge_score', {
-    p_access_code: accessCode,
+    p_judge_id: judgeId,
     p_team_id: teamId,
     p_problem_impact: scores.problemImpact,
     p_technical_completeness: scores.technicalCompleteness,
