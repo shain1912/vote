@@ -3,11 +3,14 @@
 // supabase.rpc(...) — see src/lib/api.ts — rather than direct table
 // queries (RLS blocks those by design; only the RPCs below are callable).
 
-/** Row from `list_teams()`. */
+/** Row from `list_teams()`. Sorted server-side by presentation_order asc
+ * (nulls last), then name — so the array is already in draw order once a
+ * draw has happened. */
 export interface TeamSummary {
   id: string
   name: string
   presentation_url: string | null
+  presentation_order: number | null
 }
 
 /** Result of `start_as_student(p_team_id, p_name)` — creates the student on first visit, resumes on repeat visits with the same team + exact trimmed name. */

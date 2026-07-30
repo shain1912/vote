@@ -105,9 +105,15 @@ export const getTeamLeaderboard = () => call<TeamLeaderboardRow[]>('get_team_lea
 
 export const getInvestorLeaderboard = () => call<InvestorLeaderboardRow[]>('get_investor_leaderboard')
 
-// Shuffles ALL teams server-side and assigns a fresh 1..15 presentation_order
-// every time it's called — this is the only source of randomness for the
-// draw. The frontend never shuffles anything itself, only animates
-// revealing what this RPC already decided.
+// Instant fallback: shuffles ALL teams server-side and assigns a fresh
+// 1..15 presentation_order in one call. Used for the skip/timeout path
+// when the marble race is abandoned — NOT part of the normal flow, where
+// the race itself is authoritative (see submitPresentationOrder below).
 export const drawPresentationOrder = () =>
   call<PresentationOrderDraw[]>('draw_presentation_order')
+
+// The normal flow: the marble race runs with real physics and decides the
+// order itself, then this persists that exact finish order (all 15 team
+// ids, no duplicates/missing — validated server-side).
+export const submitPresentationOrder = (teamIds: string[]) =>
+  call<void>('submit_presentation_order', { p_team_ids: teamIds })

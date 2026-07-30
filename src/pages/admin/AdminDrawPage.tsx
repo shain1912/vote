@@ -1,97 +1,66 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BrandHeader } from '../../components/BrandHeader'
-import { drawPresentationOrder, getErrorMessage, listTeams } from '../../lib/api'
-import type { PresentationOrderDraw, TeamSummary } from '../../lib/types'
+import { MarbleRace, type FinishedTeam } from '../../components/MarbleRace'
+import {
+  drawPresentationOrder,
+  getErrorMessage,
+  listTeams,
+  submitPresentationOrder,
+} from '../../lib/api'
+import type { TeamSummary } from '../../lib/types'
 
 interface DrawSlot {
   rank: number
-  teamId: string | null
   teamName: string
-  status: 'pending' | 'cycling' | 'locked'
+  status: 'pending' | 'locked'
 }
 
-// list_teams() doesn't expose presentation_order as a field (it's only
-// used server-side for ORDER BY), and there's no dedicated "has a draw
-// happened yet" RPC — only the shuffling draw_presentation_order() itself,
-// which we must NOT call just to check state. So: before any draw, the
-// list comes back in plain alphabetical order (nulls last, name); after a
-// real random shuffle among 15 teams, the odds of it coincidentally
-// matching alphabetical order are effectively zero. If this heuristic is
-// ever wrong, it can only be wrong in the safe direction — treating an
-// undrawn list as "already drawn" (blocking on an extra confirm before the
-// real first draw) — never the reverse, so it can't silently clobber a
-// real result.
-function looksAlreadyDrawn(teams: TeamSummary[]): boolean {
-  const alphabetical = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-  return teams.some((team, index) => team.id !== alphabetical[index]?.id)
-}
+// If the marble race hasn't finished naturally by this point (track jam,
+// browser hiccup, etc.), fall back to the instant shuffle so the page can
+// never get stuck on stage.
+const RACE_HARD_TIMEOUT_MS = 40000
 
-const TICKS_PER_SLOT = 11
-
-function revealSlot(
-  index: number,
-  namePool: string[],
-  finalRow: PresentationOrderDraw,
-  setSlots: Dispatch<SetStateAction<DrawSlot[]>>,
-): Promise<void> {
-  return new Promise((resolve) => {
-    let tick = 0
-
-    function step() {
-      const randomName = namePool[Math.floor(Math.random() * namePool.length)]
-      setSlots((previous) => {
-        const next = [...previous]
-        next[index] = { ...next[index], teamName: randomName, status: 'cycling' }
-        return next
-      })
-      tick += 1
-      if (tick < TICKS_PER_SLOT) {
-        // Gradually slow down each tick for a simple decelerating flicker.
-        setTimeout(step, 60 + tick * 12)
-      } else {
-        setSlots((previous) => {
-          const next = [...previous]
-          next[index] = {
-            rank: index + 1,
-            teamId: finalRow.team_id,
-            teamName: finalRow.team_name,
-            status: 'locked',
-          }
-          return next
-        })
-        resolve()
-      }
-    }
-
-    step()
-  })
+function buildPendingSlots(count: number): DrawSlot[] {
+  return Array.from({ length: count }, (_, index) => ({
+    rank: index + 1,
+    teamName: '',
+    status: 'pending',
+  }))
 }
 
 export function AdminDrawPage() {
   const [teamsLoading, setTeamsLoading] = useState(true)
   const [teamsError, setTeamsError] = useState<string | null>(null)
+  const [teams, setTeams] = useState<TeamSummary[]>([])
 
-  const [slots, setSlots] = useState<DrawSlot[]>([])
   const [hasDrawn, setHasDrawn] = useState(false)
-  const [namePool, setNamePool] = useState<string[]>([])
-  const [drawing, setDrawing] = useState(false)
+  const [slots, setSlots] = useState<DrawSlot[]>([])
+  const [racing, setRacing] = useState(false)
+  const [raceGeneration, setRaceGeneration] = useState(0)
+  const [saving, setSaving] = useState(false)
   const [drawError, setDrawError] = useState<string | null>(null)
+  // Set once the physics race finishes but before submit_presentation_order
+  // has successfully persisted it — lets a failed save be retried without
+  // throwing away a real race result and re-running everything.
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null)
 
+  const timeoutRef = useRef<number | undefined>(undefined)
+
+  // list_teams() returns presentation_order directly (integer, nullable) —
+  // a real field. All null = no draw has happened yet; all non-null =
+  // drawn, and the array is already sorted in that order server-side.
   useEffect(() => {
     let cancelled = false
     listTeams()
       .then((rows) => {
         if (cancelled) return
-        setNamePool(rows.map((team) => team.name))
-        const alreadyDrawn = looksAlreadyDrawn(rows)
-        setHasDrawn(alreadyDrawn)
+        setTeams(rows)
+        const drawn = rows.length > 0 && rows.every((team) => team.presentation_order !== null)
+        setHasDrawn(drawn)
         setSlots(
-          rows.map((team, index) => ({
-            rank: index + 1,
-            teamId: alreadyDrawn ? team.id : null,
-            teamName: alreadyDrawn ? team.name : '',
-            status: alreadyDrawn ? 'locked' : 'pending',
-          })),
+          drawn
+            ? rows.map((team, index) => ({ rank: index + 1, teamName: team.name, status: 'locked' }))
+            : buildPendingSlots(rows.length),
         )
       })
       .catch((err) => {
@@ -105,40 +74,96 @@ export function AdminDrawPage() {
     }
   }, [])
 
-  async function runDraw() {
-    setDrawing(true)
-    setDrawError(null)
-    setSlots((previous) =>
-      previous.map((slot) => ({ ...slot, status: 'pending', teamId: null, teamName: '' })),
-    )
-    try {
-      const result = await drawPresentationOrder()
-      const pool = result.map((row) => row.team_name)
-      setNamePool(pool)
-      for (let i = 0; i < result.length; i++) {
-        await revealSlot(i, pool, result[i], setSlots)
-      }
-      setHasDrawn(true)
-    } catch (err) {
-      setDrawError(getErrorMessage(err))
-    } finally {
-      setDrawing(false)
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(timeoutRef.current)
     }
-  }
+  }, [])
 
   function handleStartDraw() {
-    if (drawing) return
-    runDraw()
+    if (racing) return
+    setDrawError(null)
+    setPendingOrder(null)
+    setSlots(buildPendingSlots(teams.length))
+    setRaceGeneration((generation) => generation + 1)
+    setRacing(true)
+
+    window.clearTimeout(timeoutRef.current)
+    timeoutRef.current = window.setTimeout(() => {
+      fallbackToInstantDraw()
+    }, RACE_HARD_TIMEOUT_MS)
   }
 
   function handleRedraw() {
-    if (drawing) return
+    if (racing) return
     const confirmed = window.confirm(
-      '정말 다시 추첨하시겠습니까? 기존 발표 순서가 사라지고 새로운 순서로 바뀝니다.',
+      '정말 다시 추첨하시겠습니까? 기존 발표 순서가 사라지고 마블 레이스를 처음부터 다시 진행합니다.',
     )
     if (!confirmed) return
-    runDraw()
+    handleStartDraw()
   }
+
+  // Abandons the current race (if any) and falls back to the simple
+  // instant-shuffle RPC, which decides AND persists the order in one call.
+  // Used for both the skip button and the hard timeout.
+  async function fallbackToInstantDraw() {
+    window.clearTimeout(timeoutRef.current)
+    setRacing(false)
+    setDrawError(null)
+    try {
+      const result = await drawPresentationOrder()
+      setSlots(
+        result.map((row, index) => ({ rank: index + 1, teamName: row.team_name, status: 'locked' })),
+      )
+      setHasDrawn(true)
+      setPendingOrder(null)
+    } catch (err) {
+      setDrawError(getErrorMessage(err))
+    }
+  }
+
+  function handleSkip() {
+    fallbackToInstantDraw()
+  }
+
+  function handleMarbleFinish(team: FinishedTeam, rank: number) {
+    setSlots((previous) => {
+      const next = [...previous]
+      next[rank - 1] = { rank, teamName: team.name, status: 'locked' }
+      return next
+    })
+  }
+
+  async function handleRaceComplete(finalOrderTeamIds: string[]) {
+    window.clearTimeout(timeoutRef.current)
+    setRacing(false)
+    setPendingOrder(finalOrderTeamIds)
+    await persistOrder(finalOrderTeamIds)
+  }
+
+  async function persistOrder(teamIds: string[]) {
+    setSaving(true)
+    setDrawError(null)
+    try {
+      await submitPresentationOrder(teamIds)
+      setHasDrawn(true)
+      setPendingOrder(null)
+    } catch (err) {
+      setDrawError(
+        `결과 저장에 실패했습니다: ${getErrorMessage(err)} — 방금 진행된 레이스 결과는 유지되어 있으니 다시 저장을 시도할 수 있습니다.`,
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleRetrySave() {
+    if (pendingOrder) {
+      persistOrder(pendingOrder)
+    }
+  }
+
+  const raceTeams: FinishedTeam[] = teams.map((team) => ({ id: team.id, name: team.name }))
 
   return (
     <>
@@ -163,34 +188,71 @@ export function AdminDrawPage() {
         )}
 
         {!teamsLoading && !teamsError && (
-          <section className="panel">
-            <div className="page-header-row">
-              <h2>{hasDrawn ? '발표 순서' : '추첨 대기 중'}</h2>
-              {!hasDrawn && (
-                <button type="button" onClick={handleStartDraw} disabled={drawing}>
-                  {drawing ? '추첨 중...' : '발표 순서 추첨 시작'}
-                </button>
-              )}
-              {hasDrawn && (
-                <button type="button" onClick={handleRedraw} disabled={drawing}>
-                  {drawing ? '추첨 중...' : '다시 추첨'}
-                </button>
-              )}
-            </div>
-            {drawError && <p className="error-text">{drawError}</p>}
-            {namePool.length === 0 && <p className="hint-text">등록된 팀이 없습니다.</p>}
-
-            <div className="row-list">
-              {slots.map((slot) => (
-                <div key={slot.rank} className={`draw-slot draw-slot--${slot.status}`}>
-                  <span className="draw-slot__rank">{slot.rank}</span>
-                  <span className="draw-slot__name">
-                    {slot.status === 'pending' ? '—' : slot.teamName}
-                  </span>
+          <>
+            <section className="panel">
+              <div className="page-header-row">
+                <h2>
+                  {racing
+                    ? '레이스 진행 중...'
+                    : saving
+                      ? '결과 저장 중...'
+                      : hasDrawn
+                        ? '추첨 완료'
+                        : '추첨 대기 중'}
+                </h2>
+                <div className="page-header-row__actions">
+                  {racing && (
+                    <button type="button" onClick={handleSkip}>
+                      건너뛰기
+                    </button>
+                  )}
+                  {!racing && pendingOrder && (
+                    <button type="button" onClick={handleRetrySave} disabled={saving}>
+                      {saving ? '저장 중...' : '결과 저장 다시 시도'}
+                    </button>
+                  )}
+                  {!racing && !pendingOrder && !hasDrawn && (
+                    <button type="button" onClick={handleStartDraw} disabled={saving}>
+                      발표 순서 추첨 시작
+                    </button>
+                  )}
+                  {!racing && !pendingOrder && hasDrawn && (
+                    <button type="button" onClick={handleRedraw} disabled={saving}>
+                      다시 추첨
+                    </button>
+                  )}
                 </div>
-              ))}
-            </div>
-          </section>
+              </div>
+              {drawError && <p className="error-text">{drawError}</p>}
+              <p className="hint-text">
+                구슬들이 실제 물리 시뮬레이션으로 경주하며, 도착한 순서가 그대로 발표 순서가 되어
+                자동으로 저장됩니다. 너무 오래 걸리면 건너뛰기를 눌러 즉시 결과를 받을 수 있습니다.
+              </p>
+
+              {racing && raceTeams.length > 0 && (
+                <MarbleRace
+                  key={raceGeneration}
+                  teams={raceTeams}
+                  onMarbleFinish={handleMarbleFinish}
+                  onComplete={handleRaceComplete}
+                />
+              )}
+            </section>
+
+            <section className="panel">
+              <h2>발표 순서</h2>
+              <div className="row-list">
+                {slots.map((slot) => (
+                  <div key={slot.rank} className={`draw-slot draw-slot--${slot.status}`}>
+                    <span className="draw-slot__rank">{slot.rank}</span>
+                    <span className="draw-slot__name">
+                      {slot.status === 'pending' ? '—' : slot.teamName}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </div>
     </>

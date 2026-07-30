@@ -5,10 +5,12 @@ Makerthon (15 teams, ~44 students, 3 judges, 1 admin). Each **student**
 (not each team collectively) gets a fixed personal virtual investment
 budget of 10,000 points and invests it individually in other teams — a
 student cannot invest in their own team, but otherwise invests
-independently of their teammates. Judges score teams against a 4-criteria,
-100-point rubric. The admin is the only person who can see final rankings
-(team leaderboard + a "베스트 인베스터" list), which combine investment
-totals and judge scores.
+independently of their teammates. Students also register their team's
+presentation link and can browse everyone else's. Judges score teams
+against a 4-criteria, 100-point rubric. Presentation order is decided live
+via an admin-only physics-based marble race. The admin is the only person
+who can see final rankings (team leaderboard + a "베스트 인베스터" list),
+which combine investment totals and judge scores.
 
 The scoring/investment design is finalized and the real schema, RLS
 policies, and RPC functions are already applied to the Supabase project by
@@ -21,20 +23,31 @@ access by design, so those RPCs are the only supported entry points.
 ```
 src/
   lib/
-    supabase.ts        Supabase client (reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
-    api.ts              Typed wrapper around every supabase.rpc(...) call the app makes
-    useAdminSession.ts  Hook exposing the current Supabase Auth session (admin only)
-    types.ts            Types matching each RPC's return shape
+    supabase.ts          Supabase client (reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
+    api.ts                Typed wrapper around every supabase.rpc(...) call the app makes
+    useAdminSession.ts    Hook exposing the current Supabase Auth session (admin only)
+    useStudentSession.ts  Shared team-list + login state for /invest and /present — both
+                           read/write the same sessionStorage identity, so logging in on
+                           one resumes on the other
+    types.ts              Types matching each RPC's return shape
   components/
-    AdminRouteGuard.tsx  Redirects to /admin/login if there's no admin session
-    PresentationLink.tsx "발표자료 보기" link, or fallback text if not submitted
+    AdminRouteGuard.tsx    Redirects to /admin/login if there's no admin session
+    PresentationLink.tsx   "발표자료 보기" link, or fallback text if not submitted
+    StudentEntryScreen.tsx The team+name login card shared by /invest and /present
+    MarbleRace.tsx          Physics-based marble race (matter-js) used by /admin/draw
   pages/
-    HomePage.tsx                  "/" — links to /invest and /judge
-    NotFoundPage.tsx              catch-all 404
-    student/StudentInvestPage.tsx "/invest" — team+name entry screen, then invest + team presentation-link page
-    judge/JudgePage.tsx           "/judge" — name+passphrase entry screen, then scoring page (4-criteria rubric)
-    admin/AdminLoginPage.tsx      "/admin/login" — Supabase Auth email/password sign-in
-    admin/AdminDashboardPage.tsx  "/admin/dashboard" — team + investor leaderboards (admin only)
+    HomePage.tsx                    "/" — links to /invest, /present, /judge
+    NotFoundPage.tsx                catch-all 404
+    student/StudentInvestPage.tsx   "/invest" — pure investing (budget + invest-in-other-teams)
+    student/StudentPresentPage.tsx  "/present" — register own team's presentation_url +
+                                     browse/open every team's presentation
+    judge/JudgePage.tsx             "/judge" — name+passphrase entry screen, then scoring
+                                     page (4-criteria rubric)
+    admin/AdminLoginPage.tsx        "/admin/login" — Supabase Auth email/password sign-in
+    admin/AdminDashboardPage.tsx    "/admin/dashboard" — team + investor leaderboards
+                                     (admin only)
+    admin/AdminDrawPage.tsx         "/admin/draw" — presentation-order marble race +
+                                     reveal (admin only, safe to project publicly)
   App.tsx    Route table (HashRouter — see "Deploying" for why)
   main.tsx   Entry point
 
@@ -57,12 +70,21 @@ supabase/
 
 | Route | Who | Auth |
 |---|---|---|
-| `/` | anyone | none — links to `/invest` and `/judge` |
+| `/` | anyone | none — links to `/invest`, `/present`, `/judge` |
 | `/invest` | a **student** — picks their team from a dropdown and types their name | none; see below |
+| `/present` | a **student** — same team+name login as `/invest`, shares the identity | none; see below |
 | `/judge` | a judge — types their name and a shared passphrase | shared passphrase only, no per-person account |
 | `/admin` | admin | redirects to `/admin/dashboard` |
 | `/admin/login` | admin | Supabase Auth email/password form |
 | `/admin/dashboard` | admin | requires an authenticated Supabase session (see `AdminRouteGuard`); redirects to `/admin/login` otherwise |
+| `/admin/draw` | admin | same `AdminRouteGuard` as the dashboard, but a separate route — the dashboard has sensitive rankings that must stay private, while the draw is meant to be displayed publicly during the event |
+
+`/invest` and `/present` are two faces of the same student identity: logging
+in on either one (team + name) resumes on the other without retyping,
+since both use the shared `useStudentSession` hook reading/writing the
+same `sessionStorage` key. `/invest` is pure investing; `/present` is where
+a team registers its own `presentation_url` and where anyone can browse and
+open every team's submitted presentation in a new tab.
 
 There is no per-person link/code anymore (an earlier version of this app
 used `/t/:code` and `/j/:code` invite links — that model was dropped as
@@ -106,6 +128,21 @@ entered as a student on that team.
   project owner adds a row for this admin's auth user to the `admins`
   table, the dashboard will show a friendly "결과를 불러오지 못했습니다"
   message instead of a leaderboard. That's expected in the meantime.
+- **Admin draw** (`/admin/draw`): reads `list_teams()`'s `presentation_order`
+  field directly to know whether a draw has already happened (all null =
+  not drawn; all non-null = drawn, array already sorted in that order).
+  Starting a draw runs a real matter-js physics race (`MarbleRace`) — an
+  elongated track with peg fields, zigzag deflector walls, four rotating
+  "motor" paddles, and a narrow finish chokepoint, with escalating random
+  impulses so it can't stall out. **The physics race itself decides the
+  order** — nothing pre-determines it — and once all marbles finish,
+  `submit_presentation_order(team_ids)` persists that exact order. A
+  "건너뛰기" (skip) button and a hard timeout both abandon the race and
+  fall back to `draw_presentation_order()` (an instant server-side
+  shuffle) if the simulation ever hangs or takes too long. Redraw is
+  gated behind `window.confirm()`. matter-js is dynamically imported only
+  inside `MarbleRace.tsx`, so it never ships in the bundle any
+  student/judge downloads — Vite splits it into its own chunk.
 - Every RPC call and its human-readable Postgres error message (e.g.
   budget exceeded, self-investment blocked, invalid score range) is
   surfaced inline next to the relevant form field — see
@@ -169,3 +206,11 @@ that's a separate decision for whoever owns the GitHub repo.
 - No loading skeletons/polish beyond simple "불러오는 중..." text.
 - `vite.config.ts`'s `base` still needs to be set to the real repo name
   once a GitHub repo exists (see "Deploying").
+- `/admin/draw`'s marble race (`MarbleRace.tsx`) was built and verified
+  without a real admin login (RPC gating confirmed via direct anon calls;
+  the physics/animation/finish-detection logic confirmed via a temporary
+  local harness rendering the real component with fake data, deleted
+  before committing) — worth a real end-to-end pass with an authenticated
+  admin account before the event, especially watching a full race play out
+  at normal speed and confirming `/judge`/`/present` immediately reflect
+  the new order afterward.
