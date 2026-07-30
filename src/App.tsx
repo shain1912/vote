@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AdminRouteGuard } from './components/AdminRouteGuard'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
+import { AdminDrawPage } from './pages/admin/AdminDrawPage'
 import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { HomePage } from './pages/HomePage'
 import { JudgePage } from './pages/judge/JudgePage'
@@ -28,6 +29,18 @@ export default function App() {
           element={
             <AdminRouteGuard>
               <AdminDashboardPage />
+            </AdminRouteGuard>
+          }
+        />
+        {/* Separate from /admin/dashboard on purpose: the dashboard shows
+            sensitive rankings that must never be visible, but the draw is
+            meant to be projected/shown publicly during the event — they
+            can't share a screen. */}
+        <Route
+          path="/admin/draw"
+          element={
+            <AdminRouteGuard>
+              <AdminDrawPage />
             </AdminRouteGuard>
           }
         />

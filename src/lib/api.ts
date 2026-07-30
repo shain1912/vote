@@ -9,6 +9,7 @@ import type {
   InvestorLeaderboardRow,
   JudgeIdentity,
   JudgeScoreRow,
+  PresentationOrderDraw,
   StudentIdentity,
   TeamLeaderboardRow,
   TeamSummary,
@@ -103,3 +104,10 @@ export const submitJudgeScore = (judgeId: string, teamId: string, scores: JudgeS
 export const getTeamLeaderboard = () => call<TeamLeaderboardRow[]>('get_team_leaderboard')
 
 export const getInvestorLeaderboard = () => call<InvestorLeaderboardRow[]>('get_investor_leaderboard')
+
+// Shuffles ALL teams server-side and assigns a fresh 1..15 presentation_order
+// every time it's called — this is the only source of randomness for the
+// draw. The frontend never shuffles anything itself, only animates
+// revealing what this RPC already decided.
+export const drawPresentationOrder = () =>
+  call<PresentationOrderDraw[]>('draw_presentation_order')

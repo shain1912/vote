@@ -62,3 +62,10 @@ export interface InvestorLeaderboardRow {
   final_value: number
   profit: number
 }
+
+/** Row from `draw_presentation_order()` (authenticated/admin only). Pre-sorted by the new presentation_order asc — this IS the randomly decided order, not to be re-sorted client-side. */
+export interface PresentationOrderDraw {
+  team_id: string
+  team_name: string
+  presentation_order: number
+}

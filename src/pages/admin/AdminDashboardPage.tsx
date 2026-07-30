@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BrandHeader } from '../../components/BrandHeader'
 import { getErrorMessage, getInvestorLeaderboard, getTeamLeaderboard } from '../../lib/api'
 import { supabase } from '../../lib/supabase'
@@ -54,9 +54,14 @@ export function AdminDashboardPage() {
       <div className="page">
         <div className="page-header-row">
           <h1>결과 대시보드</h1>
-          <button type="button" onClick={handleSignOut}>
-            로그아웃
-          </button>
+          <div className="page-header-row__actions">
+            <Link to="/admin/draw" className="header-link-button">
+              발표 순서 추첨
+            </Link>
+            <button type="button" onClick={handleSignOut}>
+              로그아웃
+            </button>
+          </div>
         </div>
         <p className="page-subtitle">이 페이지는 관리자에게만 표시됩니다.</p>
 
