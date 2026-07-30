@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { BrandHeader } from '../../components/BrandHeader'
 import { PresentationLink } from '../../components/PresentationLink'
 import {
   getErrorMessage,
@@ -197,110 +198,128 @@ export function JudgePage() {
   }
 
   if (teamsLoading) {
-    return <p className="page-status">불러오는 중...</p>
+    return (
+      <>
+        <BrandHeader />
+        <p className="page-status">불러오는 중...</p>
+      </>
+    )
   }
 
   if (teamsError) {
     return (
-      <div className="page">
-        <h1>오류</h1>
-        <p className="error-text">{teamsError}</p>
-      </div>
+      <>
+        <BrandHeader />
+        <div className="page">
+          <h1>오류</h1>
+          <p className="error-text">{teamsError}</p>
+        </div>
+      </>
     )
   }
 
   if (!judge) {
     return (
-      <div className="page page--narrow">
-        <h1>심사위원으로 시작하기</h1>
-        <p className="hint-text">이름과 공유받은 암호를 입력하세요.</p>
-        <form onSubmit={handleStart} className="stacked-form">
-          <label htmlFor="judge-name">이름</label>
-          <input
-            id="judge-name"
-            type="text"
-            value={nameInput}
-            onChange={(event) => {
-              setNameInput(event.target.value)
-              setEntryStatus(IDLE_STATUS)
-            }}
-          />
+      <>
+        <BrandHeader />
+        <div className="centered-stage">
+          <div className="entry-card">
+            <h1>심사위원으로 시작하기</h1>
+            <p className="hint-text">이름과 공유받은 암호를 입력하세요.</p>
+            <form onSubmit={handleStart} className="stacked-form">
+              <label htmlFor="judge-name">이름</label>
+              <input
+                id="judge-name"
+                type="text"
+                value={nameInput}
+                onChange={(event) => {
+                  setNameInput(event.target.value)
+                  setEntryStatus(IDLE_STATUS)
+                }}
+              />
 
-          <label htmlFor="judge-passphrase">암호</label>
-          <input
-            id="judge-passphrase"
-            type="password"
-            value={passphraseInput}
-            onChange={(event) => {
-              setPassphraseInput(event.target.value)
-              setEntryStatus(IDLE_STATUS)
-            }}
-          />
+              <label htmlFor="judge-passphrase">암호</label>
+              <input
+                id="judge-passphrase"
+                type="password"
+                value={passphraseInput}
+                onChange={(event) => {
+                  setPassphraseInput(event.target.value)
+                  setEntryStatus(IDLE_STATUS)
+                }}
+              />
 
-          <button type="submit" disabled={entryStatus.state === 'saving'}>
-            {entryStatus.state === 'saving' ? '확인 중...' : '시작'}
-          </button>
-          {entryStatus.state === 'error' && <p className="error-text">{entryStatus.message}</p>}
-        </form>
-      </div>
+              <button type="submit" disabled={entryStatus.state === 'saving'}>
+                {entryStatus.state === 'saving' ? '확인 중...' : '시작'}
+              </button>
+              {entryStatus.state === 'error' && <p className="error-text">{entryStatus.message}</p>}
+            </form>
+          </div>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="page">
-      <div className="page-header-row">
-        <h1>심사위원 채점 — {judge.judge_name}</h1>
-        <button type="button" onClick={handleSwitchUser}>
-          다른 사람으로 전환
-        </button>
+    <>
+      <BrandHeader />
+      <div className="page">
+        <div className="page-header-row">
+          <h1>심사위원 채점 — {judge.judge_name}</h1>
+          <button type="button" onClick={handleSwitchUser}>
+            다른 사람으로 전환
+          </button>
+        </div>
+        <p className="hint-text">각 팀별로 4개 항목을 입력한 뒤 저장 버튼을 눌러주세요. (총 100점)</p>
+
+        {scoresError && <p className="error-text">채점 내역을 불러오지 못했습니다: {scoresError}</p>}
+        {scoresLoading && <p className="page-status">채점 내역 불러오는 중...</p>}
+
+        {teams.map((team) => {
+          const status = rowStatus[team.id] ?? IDLE_STATUS
+          const teamScores = scores[team.id] ?? {}
+          const total = CRITERIA.reduce((sum, criteria) => {
+            const n = Number(teamScores[criteria.key])
+            return sum + (Number.isFinite(n) ? n : 0)
+          }, 0)
+
+          return (
+            <section className="panel" key={team.id}>
+              <h2>{team.name}</h2>
+              <p>
+                <PresentationLink url={team.presentation_url} />
+              </p>
+              <div className="criteria-grid">
+                {CRITERIA.map((criteria) => (
+                  <label key={criteria.key} className="criteria-field">
+                    {criteria.label} (0~{criteria.max})
+                    <input
+                      type="number"
+                      min={0}
+                      max={criteria.max}
+                      inputMode="numeric"
+                      value={teamScores[criteria.key] ?? ''}
+                      onChange={(event) =>
+                        handleScoreChange(team.id, criteria.key, event.target.value)
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="hint-text">현재 합계: {total} / 100</p>
+              <button
+                type="button"
+                onClick={() => handleSaveScore(team.id)}
+                disabled={status.state === 'saving'}
+              >
+                {status.state === 'saving' ? '저장 중...' : '채점 저장'}
+              </button>
+              {status.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
+              {status.state === 'error' && <p className="error-text">{status.message}</p>}
+            </section>
+          )
+        })}
       </div>
-      <p className="hint-text">각 팀별로 4개 항목을 입력한 뒤 저장 버튼을 눌러주세요. (총 100점)</p>
-
-      {scoresError && <p className="error-text">채점 내역을 불러오지 못했습니다: {scoresError}</p>}
-      {scoresLoading && <p className="page-status">채점 내역 불러오는 중...</p>}
-
-      {teams.map((team) => {
-        const status = rowStatus[team.id] ?? IDLE_STATUS
-        const teamScores = scores[team.id] ?? {}
-        const total = CRITERIA.reduce((sum, criteria) => {
-          const n = Number(teamScores[criteria.key])
-          return sum + (Number.isFinite(n) ? n : 0)
-        }, 0)
-
-        return (
-          <section className="panel" key={team.id}>
-            <h2>{team.name}</h2>
-            <p>
-              <PresentationLink url={team.presentation_url} />
-            </p>
-            <div className="criteria-grid">
-              {CRITERIA.map((criteria) => (
-                <label key={criteria.key} className="criteria-field">
-                  {criteria.label} (0~{criteria.max})
-                  <input
-                    type="number"
-                    min={0}
-                    max={criteria.max}
-                    inputMode="numeric"
-                    value={teamScores[criteria.key] ?? ''}
-                    onChange={(event) => handleScoreChange(team.id, criteria.key, event.target.value)}
-                  />
-                </label>
-              ))}
-            </div>
-            <p className="hint-text">현재 합계: {total} / 100</p>
-            <button
-              type="button"
-              onClick={() => handleSaveScore(team.id)}
-              disabled={status.state === 'saving'}
-            >
-              {status.state === 'saving' ? '저장 중...' : '채점 저장'}
-            </button>
-            {status.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
-            {status.state === 'error' && <p className="error-text">{status.message}</p>}
-          </section>
-        )
-      })}
-    </div>
+    </>
   )
 }

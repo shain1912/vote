@@ -6,6 +6,7 @@
   --panel-bg: #fafafa;
   --accent: #6d28d9;
   --accent-contrast: #ffffff;
+  --accent-soft: #f3eefc;
   --error: #b91c1c;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -25,14 +26,22 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
 }
 
 #root {
+  min-height: 100dvh;
   max-width: 880px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 0 16px 64px;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
@@ -66,15 +75,99 @@ code {
   padding: 2px 5px;
 }
 
+/* ---- Brand header: small, consistent element on every screen ---- */
+
+.brand-header {
+  padding: 20px 0 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-header__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.brand-header__mark::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ---- Centered single-step entry screens (home, student/judge/admin login) ---- */
+
+.centered-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0 48px;
+}
+
+.entry-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px 28px;
+  box-shadow:
+    0 1px 3px rgba(24, 24, 27, 0.06),
+    0 8px 24px rgba(24, 24, 27, 0.05);
+}
+
+.entry-card__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.choice-button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  background: var(--bg);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.choice-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.choice-button__title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.choice-button__desc {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ---- General page layout (non-entry screens) ---- */
+
 .page {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.page--narrow {
-  max-width: 360px;
-  margin: 0 auto;
 }
 
 .page-header-row {
@@ -131,17 +224,165 @@ code {
   margin-top: 8px;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
+/* ---- Row-card lists: investable teams, admin leaderboards ---- */
+
+.row-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
 }
 
-.data-table th,
-.data-table td {
-  text-align: left;
-  padding: 8px 10px;
+.row-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 4px;
   border-bottom: 1px solid var(--border);
+}
+
+.row-item:last-child {
+  border-bottom: none;
+}
+
+.row-item__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.row-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.row-item__title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.row-item__action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.row-item__feedback {
+  margin-left: 4px;
+}
+
+.amount-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.amount-field__label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.amount-field input {
+  width: 110px;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-row--prize {
+  background: var(--accent-soft);
+}
+
+.leaderboard-row__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.leaderboard-row__name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.leaderboard-row__name {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.leaderboard-row__meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+  flex-shrink: 0;
+}
+
+.rank-badge--top {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.leaderboard-row__stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 56px;
+}
+
+.stat__label {
+  font-size: 11px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.stat__value {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.stat--primary .stat__value {
+  font-size: 18px;
+  color: var(--accent);
 }
 
 .criteria-grid {
@@ -185,6 +426,15 @@ input[type='url'] {
   color: var(--text-h);
 }
 
+select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
 button {
   padding: 8px 16px;
   border: none;
@@ -198,4 +448,44 @@ button {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Leaderboard rows carry up to 5 stat columns (team) or 3 (investor) plus
+   a name block — that needs more room than the simpler entry/row-item
+   layouts before it should stack, or the stats get visually cramped
+   without ever triggering the narrower breakpoint below. */
+@media (max-width: 900px) {
+  .leaderboard-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .leaderboard-row__stats {
+    justify-content: flex-start;
+  }
+}
+
+/* ---- Narrow viewports (~400px) ---- */
+
+@media (max-width: 480px) {
+  .entry-card {
+    padding: 24px 20px;
+  }
+
+  .row-item__main {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .row-item__action {
+    justify-content: space-between;
+  }
+
+  .amount-field {
+    flex: 1;
+  }
+
+  .amount-field input {
+    width: 100%;
+  }
 }

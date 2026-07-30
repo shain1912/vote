@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { BrandHeader } from '../../components/BrandHeader'
 import { PresentationLink } from '../../components/PresentationLink'
 import {
   getErrorMessage,
@@ -206,57 +207,70 @@ export function StudentInvestPage() {
   }
 
   if (teamsLoading) {
-    return <p className="page-status">불러오는 중...</p>
+    return (
+      <>
+        <BrandHeader />
+        <p className="page-status">불러오는 중...</p>
+      </>
+    )
   }
 
   if (teamsError) {
     return (
-      <div className="page">
-        <h1>오류</h1>
-        <p className="error-text">{teamsError}</p>
-      </div>
+      <>
+        <BrandHeader />
+        <div className="page">
+          <h1>오류</h1>
+          <p className="error-text">{teamsError}</p>
+        </div>
+      </>
     )
   }
 
   if (!student) {
     return (
-      <div className="page page--narrow">
-        <h1>학생으로 시작하기</h1>
-        <p className="hint-text">
-          소속 팀과 이름을 입력하고 시작하세요. 이후 같은 팀 + 같은 이름으로 다시 들어오면 기존 투자
-          내역이 그대로 이어집니다.
-        </p>
-        <form onSubmit={handleStart} className="stacked-form">
-          <label htmlFor="student-team">소속 팀</label>
-          <select
-            id="student-team"
-            value={selectedTeamId}
-            onChange={(event) => setSelectedTeamId(event.target.value)}
-          >
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
+      <>
+        <BrandHeader />
+        <div className="centered-stage">
+          <div className="entry-card">
+            <h1>학생으로 시작하기</h1>
+            <p className="hint-text">
+              소속 팀과 이름을 입력하고 시작하세요. 이후 같은 팀 + 같은 이름으로 다시 들어오면 기존
+              투자 내역이 그대로 이어집니다.
+            </p>
+            <form onSubmit={handleStart} className="stacked-form">
+              <label htmlFor="student-team">소속 팀</label>
+              <select
+                id="student-team"
+                value={selectedTeamId}
+                onChange={(event) => setSelectedTeamId(event.target.value)}
+              >
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
 
-          <label htmlFor="student-name">이름</label>
-          <input
-            id="student-name"
-            type="text"
-            value={nameInput}
-            onChange={(event) => {
-              setNameInput(event.target.value)
-              setEntryStatus(IDLE_STATUS)
-            }}
-          />
+              <label htmlFor="student-name">이름</label>
+              <input
+                id="student-name"
+                type="text"
+                value={nameInput}
+                onChange={(event) => {
+                  setNameInput(event.target.value)
+                  setEntryStatus(IDLE_STATUS)
+                }}
+              />
 
-          <button type="submit" disabled={entryStatus.state === 'saving'}>
-            {entryStatus.state === 'saving' ? '확인 중...' : '시작'}
-          </button>
-          {entryStatus.state === 'error' && <p className="error-text">{entryStatus.message}</p>}
-        </form>
-      </div>
+              <button type="submit" disabled={entryStatus.state === 'saving'}>
+                {entryStatus.state === 'saving' ? '확인 중...' : '시작'}
+              </button>
+              {entryStatus.state === 'error' && <p className="error-text">{entryStatus.message}</p>}
+            </form>
+          </div>
+        </div>
+      </>
     )
   }
 
@@ -264,107 +278,110 @@ export function StudentInvestPage() {
   const investableTeams = teams.filter((team) => team.id !== student.team_id)
 
   return (
-    <div className="page">
-      <div className="page-header-row">
-        <h1>{student.student_name}</h1>
-        <button type="button" onClick={handleSwitchUser}>
-          다른 사람으로 전환
-        </button>
-      </div>
-      <p className="page-subtitle">소속 팀: {student.team_name}</p>
-
-      {investmentsError && (
-        <p className="error-text">투자 내역을 불러오지 못했습니다: {investmentsError}</p>
-      )}
-      {investmentsLoading && <p className="page-status">투자 내역 불러오는 중...</p>}
-
-      <section className="panel">
-        <h2>나의 투자 예산</h2>
-        <p className="budget-amount">
-          {remainingBudget.toLocaleString()} / {PERSONAL_BUDGET.toLocaleString()}
-        </p>
-        <p className="hint-text">남은 예산 / 전체 예산 (포인트)</p>
-      </section>
-
-      <section className="panel">
-        <h2>우리 팀 발표자료 제출</h2>
-        <p className="hint-text">
-          다른 팀 학생과 심사위원이 확인할 수 있는 우리 팀({myTeam?.name ?? student.team_name})의
-          발표자료 링크를 등록하세요. 팀원 누구나 제출/수정할 수 있습니다.
-        </p>
-        <form onSubmit={handleSubmitPresentation} className="stacked-form">
-          <label htmlFor="presentation-url">발표자료 링크</label>
-          <input
-            id="presentation-url"
-            type="url"
-            placeholder="https://..."
-            value={presentationUrlInput}
-            onChange={(event) => {
-              setPresentationUrlInput(event.target.value)
-              setPresentationStatus(IDLE_STATUS)
-            }}
-          />
-          <button type="submit" disabled={presentationStatus.state === 'saving'}>
-            {presentationStatus.state === 'saving' ? '저장 중...' : '발표자료 링크 저장'}
+    <>
+      <BrandHeader />
+      <div className="page">
+        <div className="page-header-row">
+          <h1>{student.student_name}</h1>
+          <button type="button" onClick={handleSwitchUser}>
+            다른 사람으로 전환
           </button>
-          {presentationStatus.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
-          {presentationStatus.state === 'error' && (
-            <p className="error-text">{presentationStatus.message}</p>
-          )}
-        </form>
-      </section>
+        </div>
+        <p className="page-subtitle">소속 팀: {student.team_name}</p>
 
-      <section className="panel">
-        <h2>다른 팀에 투자하기</h2>
-        <p className="hint-text">
-          본인 팀({myTeam?.name ?? student.team_name})은 투자 대상 목록에서 제외됩니다. 팀별로 저장
-          버튼을 눌러야 반영됩니다.
-        </p>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>팀</th>
-              <th>발표자료</th>
-              <th>투자 금액</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
+        {investmentsError && (
+          <p className="error-text">투자 내역을 불러오지 못했습니다: {investmentsError}</p>
+        )}
+        {investmentsLoading && <p className="page-status">투자 내역 불러오는 중...</p>}
+
+        <section className="panel">
+          <h2>나의 투자 예산</h2>
+          <p className="budget-amount">
+            {remainingBudget.toLocaleString()} / {PERSONAL_BUDGET.toLocaleString()}
+          </p>
+          <p className="hint-text">남은 예산 / 전체 예산 (포인트)</p>
+        </section>
+
+        <section className="panel">
+          <h2>우리 팀 발표자료 제출</h2>
+          <p className="hint-text">
+            다른 팀 학생과 심사위원이 확인할 수 있는 우리 팀({myTeam?.name ?? student.team_name})의
+            발표자료 링크를 등록하세요. 팀원 누구나 제출/수정할 수 있습니다.
+          </p>
+          <form onSubmit={handleSubmitPresentation} className="stacked-form">
+            <label htmlFor="presentation-url">발표자료 링크</label>
+            <input
+              id="presentation-url"
+              type="url"
+              placeholder="https://..."
+              value={presentationUrlInput}
+              onChange={(event) => {
+                setPresentationUrlInput(event.target.value)
+                setPresentationStatus(IDLE_STATUS)
+              }}
+            />
+            <button type="submit" disabled={presentationStatus.state === 'saving'}>
+              {presentationStatus.state === 'saving' ? '저장 중...' : '발표자료 링크 저장'}
+            </button>
+            {presentationStatus.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
+            {presentationStatus.state === 'error' && (
+              <p className="error-text">{presentationStatus.message}</p>
+            )}
+          </form>
+        </section>
+
+        <section className="panel">
+          <h2>다른 팀에 투자하기</h2>
+          <p className="hint-text">
+            본인 팀({myTeam?.name ?? student.team_name})은 투자 대상 목록에서 제외됩니다. 팀별로 저장
+            버튼을 눌러야 반영됩니다.
+          </p>
+          <div className="row-list">
             {investableTeams.map((team) => {
               const status = rowStatus[team.id] ?? IDLE_STATUS
               return (
-                <tr key={team.id}>
-                  <td>{team.name}</td>
-                  <td>
-                    <PresentationLink url={team.presentation_url} />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min={0}
-                      inputMode="numeric"
-                      value={draftAmounts[team.id] ?? String(committedAmounts[team.id] ?? 0)}
-                      onChange={(event) => handleAmountChange(team.id, event.target.value)}
-                      aria-label={`${team.name}에 투자할 금액`}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => handleSaveInvestment(team.id)}
-                      disabled={status.state === 'saving'}
-                    >
-                      {status.state === 'saving' ? '저장 중...' : '저장'}
-                    </button>
-                    {status.state === 'saved' && <div className="hint-text">저장됨</div>}
-                    {status.state === 'error' && <div className="error-text">{status.message}</div>}
-                  </td>
-                </tr>
+                <div className="row-item" key={team.id}>
+                  <div className="row-item__main">
+                    <div className="row-item__info">
+                      <span className="row-item__title">{team.name}</span>
+                      <PresentationLink url={team.presentation_url} />
+                    </div>
+                    <div className="row-item__action">
+                      <div className="amount-field">
+                        <label htmlFor={`amount-${team.id}`} className="amount-field__label">
+                          투자 금액
+                        </label>
+                        <input
+                          id={`amount-${team.id}`}
+                          type="number"
+                          min={0}
+                          inputMode="numeric"
+                          value={draftAmounts[team.id] ?? String(committedAmounts[team.id] ?? 0)}
+                          onChange={(event) => handleAmountChange(team.id, event.target.value)}
+                          aria-label={`${team.name}에 투자할 금액`}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveInvestment(team.id)}
+                        disabled={status.state === 'saving'}
+                      >
+                        {status.state === 'saving' ? '저장 중...' : '저장'}
+                      </button>
+                    </div>
+                  </div>
+                  {status.state === 'saved' && (
+                    <div className="row-item__feedback hint-text">저장됨</div>
+                  )}
+                  {status.state === 'error' && (
+                    <div className="row-item__feedback error-text">{status.message}</div>
+                  )}
+                </div>
               )
             })}
-          </tbody>
-        </table>
-      </section>
-    </div>
+          </div>
+        </section>
+      </div>
+    </>
   )
 }
