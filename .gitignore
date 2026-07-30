@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Operations guide contains real admin/judge passphrases — never commit to a public repo
+운영가이드.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

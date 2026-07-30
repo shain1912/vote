@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BrandHeader } from '../../components/BrandHeader'
 import { MarbleRace, type FinishedTeam } from '../../components/MarbleRace'
 import {
@@ -7,6 +8,7 @@ import {
   listTeams,
   submitPresentationOrder,
 } from '../../lib/api'
+import { isForbiddenError, loadAdminPassphrase, storeAdminPassphrase } from '../../lib/adminAuth'
 import type { TeamSummary } from '../../lib/types'
 
 interface DrawSlot {
@@ -29,6 +31,9 @@ function buildPendingSlots(count: number): DrawSlot[] {
 }
 
 export function AdminDrawPage() {
+  const navigate = useNavigate()
+  const passphrase = loadAdminPassphrase()
+
   const [teamsLoading, setTeamsLoading] = useState(true)
   const [teamsError, setTeamsError] = useState<string | null>(null)
   const [teams, setTeams] = useState<TeamSummary[]>([])
@@ -103,6 +108,26 @@ export function AdminDrawPage() {
     handleStartDraw()
   }
 
+  // Bounces back to /admin/login (and clears the stale cached passphrase)
+  // whenever a passphrase-gated RPC comes back "forbidden" — the cache is
+  // just a UX shortcut; these RPCs re-verify it server-side themselves.
+  function handleForbidden(message: string): boolean {
+    if (!isForbiddenError(message)) return false
+    storeAdminPassphrase(null)
+    navigate('/admin/login', { replace: true })
+    return true
+  }
+
+  // Defensive: AdminRouteGuard already keeps this page from mounting
+  // without a cached passphrase, but the RPC calls below still need a
+  // definite string for TypeScript, and a redirect-on-null fallback in
+  // case that invariant is ever violated.
+  function getPassphraseOrRedirect(): string | null {
+    if (passphrase) return passphrase
+    navigate('/admin/login', { replace: true })
+    return null
+  }
+
   // Abandons the current race (if any) and falls back to the simple
   // instant-shuffle RPC, which decides AND persists the order in one call.
   // Used for both the skip button and the hard timeout.
@@ -110,15 +135,18 @@ export function AdminDrawPage() {
     window.clearTimeout(timeoutRef.current)
     setRacing(false)
     setDrawError(null)
+    const activePassphrase = getPassphraseOrRedirect()
+    if (!activePassphrase) return
     try {
-      const result = await drawPresentationOrder()
+      const result = await drawPresentationOrder(activePassphrase)
       setSlots(
         result.map((row, index) => ({ rank: index + 1, teamName: row.team_name, status: 'locked' })),
       )
       setHasDrawn(true)
       setPendingOrder(null)
     } catch (err) {
-      setDrawError(getErrorMessage(err))
+      const message = getErrorMessage(err)
+      if (!handleForbidden(message)) setDrawError(message)
     }
   }
 
@@ -142,16 +170,21 @@ export function AdminDrawPage() {
   }
 
   async function persistOrder(teamIds: string[]) {
+    const activePassphrase = getPassphraseOrRedirect()
+    if (!activePassphrase) return
     setSaving(true)
     setDrawError(null)
     try {
-      await submitPresentationOrder(teamIds)
+      await submitPresentationOrder(teamIds, activePassphrase)
       setHasDrawn(true)
       setPendingOrder(null)
     } catch (err) {
-      setDrawError(
-        `결과 저장에 실패했습니다: ${getErrorMessage(err)} — 방금 진행된 레이스 결과는 유지되어 있으니 다시 저장을 시도할 수 있습니다.`,
-      )
+      const message = getErrorMessage(err)
+      if (!handleForbidden(message)) {
+        setDrawError(
+          `결과 저장에 실패했습니다: ${message} — 방금 진행된 레이스 결과는 유지되어 있으니 다시 저장을 시도할 수 있습니다.`,
+        )
+      }
     } finally {
       setSaving(false)
     }

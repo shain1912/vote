@@ -32,6 +32,19 @@ interface FieldStatus {
 
 const IDLE_STATUS: FieldStatus = { state: 'idle' }
 
+interface SubmitFailure {
+  teamName: string
+  message: string
+}
+
+interface SubmitSummary {
+  state: 'idle' | 'submitting' | 'done'
+  succeeded: number
+  failed: SubmitFailure[]
+}
+
+const IDLE_SUMMARY: SubmitSummary = { state: 'idle', succeeded: 0, failed: [] }
+
 function loadStoredIdentity(): JudgeIdentity | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY)
@@ -64,7 +77,7 @@ export function JudgePage() {
 
   // Scoring state (once identified)
   const [scores, setScores] = useState<ScoreInputs>({})
-  const [rowStatus, setRowStatus] = useState<Record<string, FieldStatus>>({})
+  const [submitSummary, setSubmitSummary] = useState<SubmitSummary>(IDLE_SUMMARY)
   const [scoresLoading, setScoresLoading] = useState(false)
   const [scoresError, setScoresError] = useState<string | null>(null)
 
@@ -147,7 +160,7 @@ export function JudgePage() {
     storeIdentity(null)
     setJudge(null)
     setScores({})
-    setRowStatus({})
+    setSubmitSummary(IDLE_SUMMARY)
     setNameInput('')
     setPassphraseInput('')
   }
@@ -157,44 +170,77 @@ export function JudgePage() {
       ...previous,
       [teamId]: { ...previous[teamId], [criteriaKey]: value },
     }))
-    setRowStatus((previous) => ({ ...previous, [teamId]: IDLE_STATUS }))
+    setSubmitSummary(IDLE_SUMMARY)
   }
 
-  async function handleSaveScore(teamId: string) {
-    if (!judge) return
+  /** Validates one team's entered scores. Returns null if the judge hasn't
+   * touched this team at all (skip it silently), an error message if it's
+   * partially/invalidly filled in, or the parsed 0-100 values if it's
+   * ready to submit. */
+  function validateTeamScore(
+    teamId: string,
+  ): { values: Record<CriteriaKey, number> } | { error: string } | null {
+    const teamScores = scores[teamId] ?? {}
+    const touchedAny = CRITERIA.some((criteria) => (teamScores[criteria.key] ?? '') !== '')
+    if (!touchedAny) return null
 
     const values: Record<CriteriaKey, number> = {} as Record<CriteriaKey, number>
     for (const criteria of CRITERIA) {
-      const raw = scores[teamId]?.[criteria.key] ?? ''
+      const raw = teamScores[criteria.key] ?? ''
       const n = Number(raw)
       if (raw === '' || !Number.isInteger(n) || n < 0 || n > criteria.max) {
-        setRowStatus((previous) => ({
-          ...previous,
-          [teamId]: {
-            state: 'error',
-            message: `${criteria.label}은(는) 0~${criteria.max} 사이의 정수로 입력하세요.`,
-          },
-        }))
-        return
+        return { error: `${criteria.label}은(는) 0~${criteria.max} 사이의 정수로 입력하세요.` }
       }
       values[criteria.key] = n
     }
+    return { values }
+  }
 
-    setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saving' } }))
-    try {
-      await submitJudgeScore(judge.judge_id, teamId, {
-        problemImpact: values.problem_impact,
-        technicalCompleteness: values.technical_completeness,
-        feasibilityScalability: values.feasibility_scalability,
-        uxPresentation: values.ux_presentation,
-      })
-      setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saved' } }))
-    } catch (err) {
-      setRowStatus((previous) => ({
-        ...previous,
-        [teamId]: { state: 'error', message: getErrorMessage(err) },
-      }))
+  // One button submits every panel at once instead of a per-team save:
+  // loop over each team the judge entered at least one score for and call
+  // submit_judge_score for it. Still N sequential RPC calls under the
+  // hood — this is purely about it being one user action, not a
+  // concurrency fix (each judge's own scores never conflict with anyone
+  // else's).
+  async function handleSubmitAll() {
+    if (!judge) return
+
+    const toSubmit: { team: TeamSummary; values: Record<CriteriaKey, number> }[] = []
+    const failed: SubmitFailure[] = []
+
+    for (const team of teams) {
+      const result = validateTeamScore(team.id)
+      if (result === null) continue
+      if ('error' in result) {
+        failed.push({ teamName: team.name, message: result.error })
+        continue
+      }
+      toSubmit.push({ team, values: result.values })
     }
+
+    if (toSubmit.length === 0 && failed.length === 0) {
+      setSubmitSummary({ state: 'done', succeeded: 0, failed: [] })
+      return
+    }
+
+    setSubmitSummary({ state: 'submitting', succeeded: 0, failed: [] })
+
+    let succeeded = 0
+    for (const { team, values } of toSubmit) {
+      try {
+        await submitJudgeScore(judge.judge_id, team.id, {
+          problemImpact: values.problem_impact,
+          technicalCompleteness: values.technical_completeness,
+          feasibilityScalability: values.feasibility_scalability,
+          uxPresentation: values.ux_presentation,
+        })
+        succeeded += 1
+      } catch (err) {
+        failed.push({ teamName: team.name, message: getErrorMessage(err) })
+      }
+    }
+
+    setSubmitSummary({ state: 'done', succeeded, failed })
   }
 
   if (teamsLoading) {
@@ -270,13 +316,15 @@ export function JudgePage() {
             다른 사람으로 전환
           </button>
         </div>
-        <p className="hint-text">각 팀별로 4개 항목을 입력한 뒤 저장 버튼을 눌러주세요. (총 100점)</p>
+        <p className="hint-text">
+          원하는 만큼 팀별로 항목을 입력한 뒤, 맨 아래 제출 버튼을 한 번 눌러야 모두 반영됩니다. (팀당
+          총 100점)
+        </p>
 
         {scoresError && <p className="error-text">채점 내역을 불러오지 못했습니다: {scoresError}</p>}
         {scoresLoading && <p className="page-status">채점 내역 불러오는 중...</p>}
 
         {teams.map((team) => {
-          const status = rowStatus[team.id] ?? IDLE_STATUS
           const teamScores = scores[team.id] ?? {}
           const total = CRITERIA.reduce((sum, criteria) => {
             const n = Number(teamScores[criteria.key])
@@ -307,18 +355,36 @@ export function JudgePage() {
                 ))}
               </div>
               <p className="hint-text">현재 합계: {total} / 100</p>
-              <button
-                type="button"
-                onClick={() => handleSaveScore(team.id)}
-                disabled={status.state === 'saving'}
-              >
-                {status.state === 'saving' ? '저장 중...' : '채점 저장'}
-              </button>
-              {status.state === 'saved' && <p className="hint-text">저장되었습니다.</p>}
-              {status.state === 'error' && <p className="error-text">{status.message}</p>}
             </section>
           )
         })}
+
+        <section className="panel">
+          <button
+            type="button"
+            onClick={handleSubmitAll}
+            disabled={submitSummary.state === 'submitting'}
+          >
+            {submitSummary.state === 'submitting' ? '제출 중...' : '제출'}
+          </button>
+
+          {submitSummary.state === 'done' && submitSummary.failed.length === 0 && (
+            <p className="hint-text">{submitSummary.succeeded}개 팀 채점 저장 완료</p>
+          )}
+          {submitSummary.state === 'done' && submitSummary.failed.length > 0 && (
+            <>
+              <p className="error-text">
+                {submitSummary.succeeded}개 팀 저장 완료, {submitSummary.failed.length}개 팀 저장
+                실패:
+              </p>
+              {submitSummary.failed.map((entry) => (
+                <p className="error-text" key={entry.teamName}>
+                  {entry.teamName}: {entry.message}
+                </p>
+              ))}
+            </>
+          )}
+        </section>
       </div>
     </>
   )

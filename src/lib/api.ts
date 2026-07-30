@@ -37,10 +37,24 @@ async function callSingle<T>(fn: string, args?: Record<string, unknown>): Promis
 
 /** Human-readable message for anything thrown by `call`/`callSingle`.
  * Postgres RAISE EXCEPTION messages (e.g. budget/self-investment/invalid
- * passphrase/"forbidden" errors) come through as `.message` on a
- * PostgrestError, which extends Error. */
+ * passphrase/"forbidden" errors) come through as `.message` on the object
+ * supabase-js's `.rpc()` resolves as `error` — despite being
+ * PostgrestError-shaped (code/details/hint/message), it is NOT actually an
+ * `instanceof Error` in the installed @supabase/supabase-js version (verified
+ * by hand: `error.constructor.name` is plain `Object`), so `err instanceof
+ * Error` alone silently fell through to `String(err)` → "[object Object]"
+ * for every single RPC failure in the app. Check for a `.message` string
+ * first, regardless of prototype. */
 export function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
+  if (
+    err &&
+    typeof err === 'object' &&
+    'message' in err &&
+    typeof (err as { message: unknown }).message === 'string'
+  ) {
+    return (err as { message: string }).message
+  }
   return String(err)
 }
 
@@ -97,23 +111,41 @@ export const submitJudgeScore = (judgeId: string, teamId: string, scores: JudgeS
     p_ux_presentation: scores.uxPresentation,
   })
 
-// ---- Authenticated-only: admin dashboard ----
-// Both raise a Postgres "forbidden" error for a signed-in user who isn't
-// in the `admins` table. Callers should catch and display that gracefully.
+// ---- Anon-callable: admin ----
+// Gated by a single shared passphrase (same mechanic as judges), not
+// Supabase Auth. This RPC is for the login step only — the real
+// enforcement lives server-side in each admin RPC below, which re-verifies
+// the passphrase itself and raises a "forbidden" error if it's wrong.
 
-export const getTeamLeaderboard = () => call<TeamLeaderboardRow[]>('get_team_leaderboard')
+export const verifyAdminPassphrase = (passphrase: string) =>
+  call<boolean>('verify_admin_passphrase', { p_passphrase: passphrase })
 
-export const getInvestorLeaderboard = () => call<InvestorLeaderboardRow[]>('get_investor_leaderboard')
+// ---- Passphrase-gated: admin dashboard ----
+// Each of these re-verifies p_admin_passphrase server-side and raises a
+// "forbidden" error if it doesn't match. Callers should catch that, clear
+// the cached passphrase, and redirect to /admin/login rather than showing
+// a dead error state.
+
+export const getTeamLeaderboard = (adminPassphrase: string) =>
+  call<TeamLeaderboardRow[]>('get_team_leaderboard', { p_admin_passphrase: adminPassphrase })
+
+export const getInvestorLeaderboard = (adminPassphrase: string) =>
+  call<InvestorLeaderboardRow[]>('get_investor_leaderboard', {
+    p_admin_passphrase: adminPassphrase,
+  })
 
 // Instant fallback: shuffles ALL teams server-side and assigns a fresh
 // 1..15 presentation_order in one call. Used for the skip/timeout path
 // when the marble race is abandoned — NOT part of the normal flow, where
 // the race itself is authoritative (see submitPresentationOrder below).
-export const drawPresentationOrder = () =>
-  call<PresentationOrderDraw[]>('draw_presentation_order')
+export const drawPresentationOrder = (adminPassphrase: string) =>
+  call<PresentationOrderDraw[]>('draw_presentation_order', { p_admin_passphrase: adminPassphrase })
 
 // The normal flow: the marble race runs with real physics and decides the
 // order itself, then this persists that exact finish order (all 15 team
 // ids, no duplicates/missing — validated server-side).
-export const submitPresentationOrder = (teamIds: string[]) =>
-  call<void>('submit_presentation_order', { p_team_ids: teamIds })
+export const submitPresentationOrder = (teamIds: string[], adminPassphrase: string) =>
+  call<void>('submit_presentation_order', {
+    p_team_ids: teamIds,
+    p_admin_passphrase: adminPassphrase,
+  })

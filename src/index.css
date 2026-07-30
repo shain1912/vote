@@ -37,7 +37,7 @@ body {
 
 #root {
   min-height: 100dvh;
-  max-width: 880px;
+  max-width: 1140px;
   margin: 0 auto;
   padding: 0 16px 64px;
   display: flex;
@@ -232,6 +232,23 @@ code {
   font-size: 24px;
   font-weight: 600;
   color: var(--text-h);
+}
+
+.budget-amount--over {
+  color: var(--error);
+}
+
+/* Live running-total panel on /invest — stays pinned near the top of the
+   viewport while scrolling through a long team list, since that's what
+   the student should be watching while filling the form in (unlike the
+   last-saved budget panel right below it, which only updates on submit). */
+.panel--sticky-budget {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  box-shadow:
+    0 1px 3px rgba(24, 24, 27, 0.06),
+    0 8px 20px rgba(24, 24, 27, 0.08);
 }
 
 .stacked-form {
@@ -481,10 +498,33 @@ code {
   gap: 8px;
 }
 
+/* Fullscreen the whole .marble-race container (not just the canvas stage)
+   so the toolbar button stays inside the fullscreen element's rendered
+   subtree — anything outside it would simply not be shown while native
+   fullscreen is active. */
+.marble-race:fullscreen {
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg);
+  padding: 16px;
+}
+
+.marble-race__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 480px;
+}
+
 .marble-race__stage {
   position: relative;
   width: 100%;
   max-width: 480px;
+}
+
+.marble-race__stage--fullscreen {
+  max-width: none;
 }
 
 .marble-race__canvas {

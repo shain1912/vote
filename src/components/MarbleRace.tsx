@@ -37,8 +37,20 @@ interface MarbleRaceProps {
 const VIEWPORT_WIDTH = 480
 const VIEWPORT_HEIGHT = 720
 const TRACK_WIDTH = 480
-const MARBLE_RADIUS = 11
+// Sized to still read clearly when the canvas is displayed small (embedded
+// in the admin page) as well as scaled way up (fullscreen, projected for a
+// room) — see the fullscreen-sizing logic further down.
+const MARBLE_RADIUS = 16
 const PEG_RADIUS = 5
+
+// Fullscreen display sizing: the physics/world coordinates above never
+// change, only how large the fixed VIEWPORT_WIDTH x VIEWPORT_HEIGHT canvas
+// is drawn on screen (the browser scales the same raster bitmap up, same
+// idea as an <img> — cheaper than re-deriving the whole track layout for
+// an arbitrary aspect ratio).
+const FULLSCREEN_ASPECT_RATIO = VIEWPORT_WIDTH / VIEWPORT_HEIGHT
+const FULLSCREEN_MARGIN_X = 32
+const FULLSCREEN_MARGIN_Y = 96
 
 const SPAWN_Y = 40
 
@@ -369,15 +381,15 @@ function shortLabel(name: string): string {
 }
 
 function drawMarbleLabel(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, color: string) {
-  ctx.font = '9px system-ui, sans-serif'
+  ctx.font = 'bold 13px system-ui, sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   const metrics = ctx.measureText(text)
-  const paddingX = 4
+  const paddingX = 6
   const chipWidth = metrics.width + paddingX * 2
-  const chipHeight = 13
+  const chipHeight = 19
   const chipX = x - chipWidth / 2
-  const chipY = y + MARBLE_RADIUS + 4
+  const chipY = y + MARBLE_RADIUS + 5
 
   ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
   ctx.strokeStyle = color
@@ -500,9 +512,68 @@ function render(ctx: CanvasRenderingContext2D, state: TrackState) {
 export function MarbleRace({ teams, onMarbleFinish, onComplete }: MarbleRaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef<TrackState | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [liveRanking, setLiveRanking] = useState<{ rank: number; name: string }[]>([])
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [fullscreenSize, setFullscreenSize] = useState<{ width: number; height: number } | null>(
+    null,
+  )
+
+  // The race is meant to be projected for a whole room, and the fixed
+  // 480x720 canvas reads too small for that even with the bigger marbles
+  // above — so fullscreen doesn't just blow up the surrounding page, it
+  // recomputes a display size that actually fills the screen (preserving
+  // the canvas's aspect ratio) and applies it as inline width/height,
+  // overriding the normal responsive CSS sizing.
+  useEffect(() => {
+    function computeFullscreenSize() {
+      const availableWidth = Math.max(window.innerWidth - FULLSCREEN_MARGIN_X, 240)
+      const availableHeight = Math.max(window.innerHeight - FULLSCREEN_MARGIN_Y, 360)
+      let width = availableWidth
+      let height = width / FULLSCREEN_ASPECT_RATIO
+      if (height > availableHeight) {
+        height = availableHeight
+        width = height * FULLSCREEN_ASPECT_RATIO
+      }
+      return { width: Math.round(width), height: Math.round(height) }
+    }
+
+    function handleFullscreenChange() {
+      const active = document.fullscreenElement === containerRef.current
+      setIsFullscreen(active)
+      setFullscreenSize(active ? computeFullscreenSize() : null)
+    }
+
+    function handleResize() {
+      if (document.fullscreenElement === containerRef.current) {
+        setFullscreenSize(computeFullscreenSize())
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    window.addEventListener('resize', handleResize)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  async function handleToggleFullscreen() {
+    const container = containerRef.current
+    if (!container) return
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      } else {
+        await container.requestFullscreen()
+      }
+    } catch {
+      // Fullscreen can be denied (no user gesture, browser/OS policy,
+      // etc.) — not fatal, the race still runs fine at normal size.
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -568,15 +639,24 @@ export function MarbleRace({ teams, onMarbleFinish, onComplete }: MarbleRaceProp
   }, [])
 
   return (
-    <div className="marble-race">
+    <div className="marble-race" ref={containerRef}>
       {loading && <p className="page-status">물리 엔진 불러오는 중...</p>}
       {loadError && <p className="error-text">마블 레이스를 불러오지 못했습니다: {loadError}</p>}
-      <div className="marble-race__stage">
+      <div className="marble-race__toolbar">
+        <button type="button" onClick={handleToggleFullscreen}>
+          {isFullscreen ? '전체화면 종료' : '전체화면'}
+        </button>
+      </div>
+      <div
+        className={`marble-race__stage${isFullscreen ? ' marble-race__stage--fullscreen' : ''}`}
+        style={fullscreenSize ? { width: fullscreenSize.width, height: fullscreenSize.height } : undefined}
+      >
         <canvas
           ref={canvasRef}
           width={VIEWPORT_WIDTH}
           height={VIEWPORT_HEIGHT}
           className="marble-race__canvas"
+          style={fullscreenSize ? { width: fullscreenSize.width, height: fullscreenSize.height } : undefined}
         />
         <div className="marble-race__ranking">
           {liveRanking.map((entry) => (

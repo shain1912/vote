@@ -1,17 +1,17 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { BrandHeader } from '../../components/BrandHeader'
-import { supabase } from '../../lib/supabase'
-import { useAdminSession } from '../../lib/useAdminSession'
+import { getErrorMessage, verifyAdminPassphrase } from '../../lib/api'
+import { loadAdminPassphrase, storeAdminPassphrase } from '../../lib/adminAuth'
 
 export function AdminLoginPage() {
-  const { session, loading } = useAdminSession()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const navigate = useNavigate()
+  const [cachedPassphrase] = useState(() => loadAdminPassphrase())
+  const [passphraseInput, setPassphraseInput] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  if (!loading && session) {
+  if (cachedPassphrase) {
     return <Navigate to="/admin/dashboard" replace />
   }
 
@@ -20,16 +20,19 @@ export function AdminLoginPage() {
     setError(null)
     setSubmitting(true)
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-
-    setSubmitting(false)
-
-    if (signInError) {
-      setError(signInError.message)
+    try {
+      const ok = await verifyAdminPassphrase(passphraseInput)
+      if (!ok) {
+        setError('암호가 올바르지 않습니다.')
+        return
+      }
+      storeAdminPassphrase(passphraseInput)
+      navigate('/admin/dashboard', { replace: true })
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
     }
-    // On success, useAdminSession picks up the new session via
-    // onAuthStateChange and this component re-renders into the redirect
-    // above.
   }
 
   return (
@@ -41,30 +44,23 @@ export function AdminLoginPage() {
           <p className="hint-text">결과 대시보드는 관리자만 볼 수 있습니다.</p>
 
           <form onSubmit={handleSubmit} className="stacked-form">
-            <label htmlFor="admin-email">이메일</label>
+            <label htmlFor="admin-passphrase">암호</label>
             <input
-              id="admin-email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-
-            <label htmlFor="admin-password">비밀번호</label>
-            <input
-              id="admin-password"
+              id="admin-passphrase"
               type="password"
               autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              value={passphraseInput}
+              onChange={(event) => {
+                setPassphraseInput(event.target.value)
+                setError(null)
+              }}
               required
             />
 
             {error && <p className="error-text">{error}</p>}
 
             <button type="submit" disabled={submitting}>
-              {submitting ? '로그인 중...' : '로그인'}
+              {submitting ? '확인 중...' : '로그인'}
             </button>
           </form>
         </div>

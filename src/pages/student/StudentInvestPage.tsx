@@ -3,10 +3,24 @@ import { BrandHeader } from '../../components/BrandHeader'
 import { PresentationLink } from '../../components/PresentationLink'
 import { StudentEntryScreen } from '../../components/StudentEntryScreen'
 import { getErrorMessage, getMyInvestments, submitInvestment } from '../../lib/api'
-import { IDLE_STATUS, useStudentSession, type FieldStatus } from '../../lib/useStudentSession'
+import { IDLE_STATUS, useStudentSession } from '../../lib/useStudentSession'
+import type { TeamSummary } from '../../lib/types'
 
 // Fixed per-student budget for this event (confirmed, not a placeholder).
 const PERSONAL_BUDGET = 10000
+
+interface SubmitFailure {
+  teamName: string
+  message: string
+}
+
+interface SubmitSummary {
+  state: 'idle' | 'submitting' | 'done'
+  succeeded: number
+  failed: SubmitFailure[]
+}
+
+const IDLE_SUMMARY: SubmitSummary = { state: 'idle', succeeded: 0, failed: [] }
 
 export function StudentInvestPage() {
   const {
@@ -27,7 +41,7 @@ export function StudentInvestPage() {
   // Investment state (once identified)
   const [committedAmounts, setCommittedAmounts] = useState<Record<string, number>>({})
   const [draftAmounts, setDraftAmounts] = useState<Record<string, string>>({})
-  const [rowStatus, setRowStatus] = useState<Record<string, FieldStatus>>({})
+  const [submitSummary, setSubmitSummary] = useState<SubmitSummary>(IDLE_SUMMARY)
   const [investmentsLoading, setInvestmentsLoading] = useState(false)
   const [investmentsError, setInvestmentsError] = useState<string | null>(null)
 
@@ -57,7 +71,7 @@ export function StudentInvestPage() {
     switchUser()
     setCommittedAmounts({})
     setDraftAmounts({})
-    setRowStatus({})
+    setSubmitSummary(IDLE_SUMMARY)
   }
 
   const remainingBudget =
@@ -65,33 +79,59 @@ export function StudentInvestPage() {
 
   function handleAmountChange(teamId: string, value: string) {
     setDraftAmounts((previous) => ({ ...previous, [teamId]: value }))
-    setRowStatus((previous) => ({ ...previous, [teamId]: IDLE_STATUS }))
+    setSubmitSummary(IDLE_SUMMARY)
   }
 
-  async function handleSaveInvestment(teamId: string) {
+  // One button submits every row at once instead of a per-row save: loop
+  // over each investable team with a non-zero amount (or an amount that
+  // changed from what's already saved) and call submit_investment for it.
+  // Still N sequential RPC calls under the hood — this is purely about it
+  // being one user action, not a concurrency fix (each student's own rows
+  // never conflict with anyone else's).
+  async function handleSubmitAll() {
     if (!student) return
 
-    const raw = draftAmounts[teamId] ?? '0'
-    const amount = Number(raw)
-    if (!Number.isInteger(amount) || amount < 0) {
-      setRowStatus((previous) => ({
-        ...previous,
-        [teamId]: { state: 'error', message: '0 이상의 정수를 입력하세요.' },
-      }))
+    const toSubmit = investableTeams
+      .map((team) => {
+        const committed = committedAmounts[team.id] ?? 0
+        const raw = draftAmounts[team.id]
+        if (raw === undefined) {
+          return committed !== 0 ? { team, amount: committed } : null
+        }
+        const amount = Number(raw)
+        if (!Number.isInteger(amount) || amount < 0) {
+          return { team, amount: Number.NaN }
+        }
+        if (amount === 0 && committed === 0) return null
+        return { team, amount }
+      })
+      .filter((entry): entry is { team: TeamSummary; amount: number } => entry !== null)
+
+    if (toSubmit.length === 0) {
+      setSubmitSummary({ state: 'done', succeeded: 0, failed: [] })
       return
     }
 
-    setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saving' } }))
-    try {
-      await submitInvestment(student.student_id, teamId, amount)
-      setCommittedAmounts((previous) => ({ ...previous, [teamId]: amount }))
-      setRowStatus((previous) => ({ ...previous, [teamId]: { state: 'saved' } }))
-    } catch (err) {
-      setRowStatus((previous) => ({
-        ...previous,
-        [teamId]: { state: 'error', message: getErrorMessage(err) },
-      }))
+    setSubmitSummary({ state: 'submitting', succeeded: 0, failed: [] })
+
+    let succeeded = 0
+    const failed: SubmitFailure[] = []
+
+    for (const { team, amount } of toSubmit) {
+      if (Number.isNaN(amount)) {
+        failed.push({ teamName: team.name, message: '0 이상의 정수를 입력하세요.' })
+        continue
+      }
+      try {
+        await submitInvestment(student.student_id, team.id, amount)
+        setCommittedAmounts((previous) => ({ ...previous, [team.id]: amount }))
+        succeeded += 1
+      } catch (err) {
+        failed.push({ teamName: team.name, message: getErrorMessage(err) })
+      }
     }
+
+    setSubmitSummary({ state: 'done', succeeded, failed })
   }
 
   if (teamsLoading) {
@@ -135,6 +175,18 @@ export function StudentInvestPage() {
   const myTeam = teams.find((team) => team.id === student.team_id)
   const investableTeams = teams.filter((team) => team.id !== student.team_id)
 
+  // Live running total across whatever's currently typed in every row
+  // (saved or not) — recalculated on every keystroke, unlike
+  // remainingBudget above which only reflects the last successful submit.
+  // This is what the student should be watching while filling the form in.
+  const draftTotal = investableTeams.reduce((sum, team) => {
+    const raw = draftAmounts[team.id]
+    const amount = raw === undefined ? (committedAmounts[team.id] ?? 0) : Number(raw)
+    return sum + (Number.isFinite(amount) ? amount : 0)
+  }, 0)
+  const draftRemaining = PERSONAL_BUDGET - draftTotal
+  const isOverBudget = draftRemaining < 0
+
   return (
     <>
       <BrandHeader />
@@ -152,64 +204,84 @@ export function StudentInvestPage() {
         )}
         {investmentsLoading && <p className="page-status">투자 내역 불러오는 중...</p>}
 
+        <section className="panel panel--sticky-budget">
+          <h2>입력 중인 투자 합계 (실시간)</h2>
+          <p className={`budget-amount${isOverBudget ? ' budget-amount--over' : ''}`}>
+            {draftTotal.toLocaleString()} / {PERSONAL_BUDGET.toLocaleString()}
+          </p>
+          <p className={isOverBudget ? 'error-text' : 'hint-text'}>
+            남은 예산: {draftRemaining.toLocaleString()} — 아직 저장하지 않은 입력값까지 포함한
+            실시간 합계입니다.
+          </p>
+        </section>
+
         <section className="panel">
           <h2>나의 투자 예산</h2>
           <p className="budget-amount">
             {remainingBudget.toLocaleString()} / {PERSONAL_BUDGET.toLocaleString()}
           </p>
-          <p className="hint-text">남은 예산 / 전체 예산 (포인트)</p>
+          <p className="hint-text">남은 예산 / 전체 예산 (포인트) · 마지막으로 저장된 금액 기준</p>
         </section>
 
         <section className="panel">
           <h2>다른 팀에 투자하기</h2>
           <p className="hint-text">
-            본인 팀({myTeam?.name ?? student.team_name})은 투자 대상 목록에서 제외됩니다. 팀별로 저장
-            버튼을 눌러야 반영됩니다.
+            본인 팀({myTeam?.name ?? student.team_name})은 투자 대상 목록에서 제외됩니다. 원하는 만큼
+            금액을 입력한 뒤, 맨 아래 제출 버튼을 한 번 눌러야 모두 반영됩니다.
           </p>
           <div className="row-list">
-            {investableTeams.map((team) => {
-              const status = rowStatus[team.id] ?? IDLE_STATUS
-              return (
-                <div className="row-item" key={team.id}>
-                  <div className="row-item__main">
-                    <div className="row-item__info">
-                      <span className="row-item__title">{team.name}</span>
-                      <PresentationLink url={team.presentation_url} />
-                    </div>
-                    <div className="row-item__action">
-                      <div className="amount-field">
-                        <label htmlFor={`amount-${team.id}`} className="amount-field__label">
-                          투자 금액
-                        </label>
-                        <input
-                          id={`amount-${team.id}`}
-                          type="number"
-                          min={0}
-                          inputMode="numeric"
-                          value={draftAmounts[team.id] ?? String(committedAmounts[team.id] ?? 0)}
-                          onChange={(event) => handleAmountChange(team.id, event.target.value)}
-                          aria-label={`${team.name}에 투자할 금액`}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleSaveInvestment(team.id)}
-                        disabled={status.state === 'saving'}
-                      >
-                        {status.state === 'saving' ? '저장 중...' : '저장'}
-                      </button>
+            {investableTeams.map((team) => (
+              <div className="row-item" key={team.id}>
+                <div className="row-item__main">
+                  <div className="row-item__info">
+                    <span className="row-item__title">{team.name}</span>
+                    <PresentationLink url={team.presentation_url} />
+                  </div>
+                  <div className="row-item__action">
+                    <div className="amount-field">
+                      <label htmlFor={`amount-${team.id}`} className="amount-field__label">
+                        투자 금액
+                      </label>
+                      <input
+                        id={`amount-${team.id}`}
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        value={draftAmounts[team.id] ?? String(committedAmounts[team.id] ?? 0)}
+                        onChange={(event) => handleAmountChange(team.id, event.target.value)}
+                        aria-label={`${team.name}에 투자할 금액`}
+                      />
                     </div>
                   </div>
-                  {status.state === 'saved' && (
-                    <div className="row-item__feedback hint-text">저장됨</div>
-                  )}
-                  {status.state === 'error' && (
-                    <div className="row-item__feedback error-text">{status.message}</div>
-                  )}
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
+
+          <button
+            type="button"
+            onClick={handleSubmitAll}
+            disabled={submitSummary.state === 'submitting'}
+          >
+            {submitSummary.state === 'submitting' ? '제출 중...' : '제출'}
+          </button>
+
+          {submitSummary.state === 'done' && submitSummary.failed.length === 0 && (
+            <p className="hint-text">{submitSummary.succeeded}개 팀 투자 저장 완료</p>
+          )}
+          {submitSummary.state === 'done' && submitSummary.failed.length > 0 && (
+            <>
+              <p className="error-text">
+                {submitSummary.succeeded}개 팀 저장 완료, {submitSummary.failed.length}개 팀 저장
+                실패:
+              </p>
+              {submitSummary.failed.map((entry) => (
+                <p className="error-text" key={entry.teamName}>
+                  {entry.teamName}: {entry.message}
+                </p>
+              ))}
+            </>
+          )}
         </section>
       </div>
     </>

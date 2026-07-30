@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BrandHeader } from '../../components/BrandHeader'
 import { getErrorMessage, getInvestorLeaderboard, getTeamLeaderboard } from '../../lib/api'
-import { supabase } from '../../lib/supabase'
+import { isForbiddenError, loadAdminPassphrase, storeAdminPassphrase } from '../../lib/adminAuth'
 import type { InvestorLeaderboardRow, TeamLeaderboardRow } from '../../lib/types'
 
 const BEST_INVESTOR_PRIZE_COUNT = 8
@@ -13,38 +13,56 @@ function formatPercent(fraction: number): string {
 
 export function AdminDashboardPage() {
   const navigate = useNavigate()
+  const passphrase = loadAdminPassphrase()
 
   const [teamRows, setTeamRows] = useState<TeamLeaderboardRow[] | null>(null)
   const [teamError, setTeamError] = useState<string | null>(null)
   const [investorRows, setInvestorRows] = useState<InvestorLeaderboardRow[] | null>(null)
   const [investorError, setInvestorError] = useState<string | null>(null)
 
+  // A "forbidden" response means the cached passphrase is stale/wrong —
+  // AdminRouteGuard only checks that *something* is cached, not that it's
+  // still valid, so this is the one place that has to react to that by
+  // bouncing back to /admin/login instead of leaving a dead error state.
+  function handleForbidden(message: string): boolean {
+    if (!isForbiddenError(message)) return false
+    storeAdminPassphrase(null)
+    navigate('/admin/login', { replace: true })
+    return true
+  }
+
   useEffect(() => {
+    if (!passphrase) return
     let cancelled = false
 
-    getTeamLeaderboard()
+    getTeamLeaderboard(passphrase)
       .then((rows) => {
         if (!cancelled) setTeamRows(rows)
       })
       .catch((err) => {
-        if (!cancelled) setTeamError(getErrorMessage(err))
+        if (cancelled) return
+        const message = getErrorMessage(err)
+        if (!handleForbidden(message)) setTeamError(message)
       })
 
-    getInvestorLeaderboard()
+    getInvestorLeaderboard(passphrase)
       .then((rows) => {
         if (!cancelled) setInvestorRows(rows)
       })
       .catch((err) => {
-        if (!cancelled) setInvestorError(getErrorMessage(err))
+        if (cancelled) return
+        const message = getErrorMessage(err)
+        if (!handleForbidden(message)) setInvestorError(message)
       })
 
     return () => {
       cancelled = true
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passphrase])
 
-  async function handleSignOut() {
-    await supabase.auth.signOut()
+  function handleSignOut() {
+    storeAdminPassphrase(null)
     navigate('/admin/login', { replace: true })
   }
 
@@ -67,14 +85,7 @@ export function AdminDashboardPage() {
 
         <section className="panel">
           <h2>팀 순위</h2>
-          {teamError && (
-            <p className="error-text">
-              결과를 불러오지 못했습니다: {teamError}
-              {teamError.includes('forbidden') && (
-                <> — 이 계정이 아직 관리자로 등록되지 않았을 수 있습니다.</>
-              )}
-            </p>
-          )}
+          {teamError && <p className="error-text">결과를 불러오지 못했습니다: {teamError}</p>}
           {!teamError && teamRows === null && <p className="page-status">불러오는 중...</p>}
           {!teamError && teamRows !== null && (
             <div className="row-list">
@@ -125,12 +136,7 @@ export function AdminDashboardPage() {
             상위 {BEST_INVESTOR_PRIZE_COUNT}명은 50,000원 상금 대상입니다 (강조 표시).
           </p>
           {investorError && (
-            <p className="error-text">
-              결과를 불러오지 못했습니다: {investorError}
-              {investorError.includes('forbidden') && (
-                <> — 이 계정이 아직 관리자로 등록되지 않았을 수 있습니다.</>
-              )}
-            </p>
+            <p className="error-text">결과를 불러오지 못했습니다: {investorError}</p>
           )}
           {!investorError && investorRows === null && <p className="page-status">불러오는 중...</p>}
           {!investorError && investorRows !== null && (
