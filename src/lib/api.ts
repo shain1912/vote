@@ -5,9 +5,11 @@
 
 import { supabase } from './supabase'
 import type {
+  InvestmentRecordRow,
   InvestmentRow,
   InvestorLeaderboardRow,
   JudgeIdentity,
+  JudgeScoreRecordRow,
   JudgeScoreRow,
   PresentationOrderDraw,
   StudentIdentity,
@@ -149,3 +151,12 @@ export const submitPresentationOrder = (teamIds: string[], adminPassphrase: stri
     p_team_ids: teamIds,
     p_admin_passphrase: adminPassphrase,
   })
+
+// Raw per-record data behind the two leaderboards above, for CSV export —
+// one row per (student, team) investment / (judge, team) score rather
+// than the aggregated per-student or per-team totals.
+export const getInvestmentRecords = (adminPassphrase: string) =>
+  call<InvestmentRecordRow[]>('get_investment_records', { p_admin_passphrase: adminPassphrase })
+
+export const getJudgeScoreRecords = (adminPassphrase: string) =>
+  call<JudgeScoreRecordRow[]>('get_judge_score_records', { p_admin_passphrase: adminPassphrase })

@@ -72,3 +72,28 @@ export interface PresentationOrderDraw {
   team_name: string
   presentation_order: number
 }
+
+/** Row from `get_investment_records()` (admin-passphrase-gated) — the raw
+ * per-(student, team) investment data behind the aggregated leaderboards,
+ * for CSV export. One row per investment, not per student. */
+export interface InvestmentRecordRow {
+  student_name: string
+  student_team: string
+  invested_in_team: string
+  amount: number
+  updated_at: string
+}
+
+/** Row from `get_judge_score_records()` (admin-passphrase-gated) — the raw
+ * per-(judge, team) score breakdown behind the aggregated leaderboards,
+ * for CSV export. One row per score, not per judge. */
+export interface JudgeScoreRecordRow {
+  judge_name: string
+  team_name: string
+  problem_impact: number
+  technical_completeness: number
+  feasibility_scalability: number
+  ux_presentation: number
+  total: number
+  updated_at: string
+}
