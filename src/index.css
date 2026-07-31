@@ -8,6 +8,7 @@
   --accent-contrast: #ffffff;
   --accent-soft: #f3eefc;
   --error: #b91c1c;
+  --error-soft: #fef2f2;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
@@ -226,6 +227,19 @@ code {
   background: var(--panel-bg);
   border-radius: 8px;
   padding: 16px;
+}
+
+/* Destructive "danger zone" panel (event data reset) — deliberately styled
+   apart from every other panel on the admin dashboard so it can't be
+   mistaken for a normal action while reaching for the CSV buttons or
+   leaderboards above it. */
+.panel--danger {
+  border: 1px solid var(--error);
+  background: var(--error-soft);
+}
+
+.button--danger {
+  background: var(--error);
 }
 
 .budget-amount {

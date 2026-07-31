@@ -7,6 +7,7 @@ import {
   getInvestorLeaderboard,
   getJudgeScoreRecords,
   getTeamLeaderboard,
+  resetEventData,
 } from '../../lib/api'
 import { isForbiddenError, loadAdminPassphrase, storeAdminPassphrase } from '../../lib/adminAuth'
 import { downloadCsv, rowsToCsv, todayDateString } from '../../lib/csv'
@@ -25,6 +26,19 @@ interface CsvDownloadStatus {
 
 const IDLE_CSV_STATUS: CsvDownloadStatus = { state: 'idle' }
 
+interface ResetStatus {
+  state: 'idle' | 'loading' | 'success' | 'error'
+  message?: string
+}
+
+const IDLE_RESET_STATUS: ResetStatus = { state: 'idle' }
+
+// Typed exactly, not just "any non-empty text" — this is the confirmation
+// gate for a genuinely destructive, irreversible action (wipes real
+// investments/scores/registrations), so a single dismissible
+// window.confirm() isn't enough; see handleResetEventData.
+const RESET_CONFIRM_WORD = '초기화'
+
 export function AdminDashboardPage() {
   const navigate = useNavigate()
   const passphrase = loadAdminPassphrase()
@@ -36,6 +50,13 @@ export function AdminDashboardPage() {
 
   const [investmentCsvStatus, setInvestmentCsvStatus] = useState<CsvDownloadStatus>(IDLE_CSV_STATUS)
   const [judgeCsvStatus, setJudgeCsvStatus] = useState<CsvDownloadStatus>(IDLE_CSV_STATUS)
+
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [resetStatus, setResetStatus] = useState<ResetStatus>(IDLE_RESET_STATUS)
+  // Bumped after a successful reset so the leaderboard-fetching effect
+  // below re-runs and picks up the now-empty data, without needing a
+  // manual page refresh.
+  const [refetchGeneration, setRefetchGeneration] = useState(0)
 
   // A "forbidden" response means the cached passphrase is stale/wrong —
   // AdminRouteGuard only checks that *something* is cached, not that it's
@@ -76,7 +97,7 @@ export function AdminDashboardPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passphrase])
+  }, [passphrase, refetchGeneration])
 
   function handleSignOut() {
     storeAdminPassphrase(null)
@@ -133,6 +154,37 @@ export function AdminDashboardPage() {
     } catch (err) {
       const message = getErrorMessage(err)
       if (!handleForbidden(message)) setJudgeCsvStatus({ state: 'error', message })
+    }
+  }
+
+  // Genuinely destructive and irreversible (wipes real investments/scores/
+  // registrations for the whole event), so this only runs once the admin
+  // has typed RESET_CONFIRM_WORD exactly — the button stays disabled
+  // otherwise. That's the real guard against an accidental misclick; this
+  // function itself re-checks it too as a second line of defense.
+  async function handleResetEventData() {
+    if (!passphrase) return
+    if (resetConfirmText !== RESET_CONFIRM_WORD) return
+
+    setResetStatus({ state: 'loading' })
+    try {
+      await resetEventData(passphrase)
+      setResetStatus({
+        state: 'success',
+        message: '초기화 완료: 투자·채점·학생·심사위원 데이터가 모두 삭제되었습니다.',
+      })
+      setResetConfirmText('')
+      // Reflect the now-empty state without requiring a manual page
+      // refresh: clear the currently-displayed rows/errors so the
+      // leaderboards show "불러오는 중..." while the effect below refetches.
+      setTeamRows(null)
+      setTeamError(null)
+      setInvestorRows(null)
+      setInvestorError(null)
+      setRefetchGeneration((generation) => generation + 1)
+    } catch (err) {
+      const message = getErrorMessage(err)
+      if (!handleForbidden(message)) setResetStatus({ state: 'error', message })
     }
   }
 
@@ -279,6 +331,44 @@ export function AdminDashboardPage() {
                 )
               })}
             </div>
+          )}
+        </section>
+
+        <section className="panel panel--danger">
+          <h2>모의테스트 데이터 초기화</h2>
+          <p className="error-text">
+            이 작업은 되돌릴 수 없습니다. 모든 학생·심사위원 등록, 투자 내역, 채점 내역이 즉시
+            삭제되고 발표 순서·발표자료 링크도 초기화됩니다 (팀 목록 자체와 암호는 그대로
+            유지됩니다). 실제 행사 중에는 절대 누르지 마세요 — 모의테스트가 끝난 뒤 데이터를 정리할
+            때만 사용하세요.
+          </p>
+          <div className="stacked-form">
+            <label htmlFor="reset-confirm">
+              계속하려면 아래 입력란에 정확히 &quot;{RESET_CONFIRM_WORD}&quot;를 입력하세요
+            </label>
+            <input
+              id="reset-confirm"
+              type="text"
+              value={resetConfirmText}
+              onChange={(event) => {
+                setResetConfirmText(event.target.value)
+                setResetStatus(IDLE_RESET_STATUS)
+              }}
+              placeholder={RESET_CONFIRM_WORD}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="button--danger"
+              onClick={handleResetEventData}
+              disabled={resetConfirmText !== RESET_CONFIRM_WORD || resetStatus.state === 'loading'}
+            >
+              {resetStatus.state === 'loading' ? '초기화 중...' : '모의테스트 데이터 초기화'}
+            </button>
+          </div>
+          {resetStatus.state === 'success' && <p className="hint-text">{resetStatus.message}</p>}
+          {resetStatus.state === 'error' && (
+            <p className="error-text">초기화 실패: {resetStatus.message}</p>
           )}
         </section>
       </div>

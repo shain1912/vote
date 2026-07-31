@@ -160,3 +160,12 @@ export const getInvestmentRecords = (adminPassphrase: string) =>
 
 export const getJudgeScoreRecords = (adminPassphrase: string) =>
   call<JudgeScoreRecordRow[]>('get_judge_score_records', { p_admin_passphrase: adminPassphrase })
+
+// Wipes ALL investments/judge_scores/students/judges and resets every
+// team's presentation_order/presentation_url to null — for clearing out
+// 모의테스트 (mock test) data before the real event. Does NOT touch the 15
+// real team rows/names or event_settings (passphrases survive). This is
+// genuinely destructive and irreversible — see AdminDashboardPage's
+// type-to-confirm gate before this ever gets called.
+export const resetEventData = (adminPassphrase: string) =>
+  call<void>('reset_event_data', { p_admin_passphrase: adminPassphrase })
