@@ -91,6 +91,20 @@ export function StudentInvestPage() {
   async function handleSubmitAll() {
     if (!student) return
 
+    if (draftTotal > PERSONAL_BUDGET) {
+      setSubmitSummary({
+        state: 'done',
+        succeeded: 0,
+        failed: [
+          {
+            teamName: '전체',
+            message: `입력한 합계(${draftTotal.toLocaleString()})가 예산(${PERSONAL_BUDGET.toLocaleString()})을 초과했습니다. 금액을 줄인 뒤 다시 제출하세요. (아직 아무것도 저장되지 않았습니다.)`,
+          },
+        ],
+      })
+      return
+    }
+
     const toSubmit = investableTeams
       .map((team) => {
         const committed = committedAmounts[team.id] ?? 0
