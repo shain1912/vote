@@ -20,22 +20,10 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #121613;
-      --surface: #191f1b;
-      --ink: #eaf0ec;
-      --ink-soft: #a9b6ae;
-      --border: #2b342e;
-      --teal: #4fc7c3;
-      --teal-soft: #17302f;
-      --amber: #e0a94f;
-      --amber-soft: #332815;
-      --final: #d8dee6;
-      --final-soft: #232a30;
-      --award: #e3b23c;
-      --award-soft: #332a10;
-      --pos: #4fbf85;
-      --neg: #e2726d;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.35);
+      --bg: #121613; --surface: #191f1b; --ink: #eaf0ec; --ink-soft: #a9b6ae; --border: #2b342e;
+      --teal: #4fc7c3; --teal-soft: #17302f; --amber: #e0a94f; --amber-soft: #332815;
+      --final: #d8dee6; --final-soft: #232a30; --award: #e3b23c; --award-soft: #332a10;
+      --pos: #4fbf85; --neg: #e2726d; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.35);
     }
   }
   :root[data-theme="dark"] {
@@ -58,159 +46,105 @@
     color: var(--ink);
     font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, system-ui, sans-serif;
     font-feature-settings: 'tnum' 1;
-    line-height: 1.6;
-    padding: 0 20px 96px;
+    line-height: 1.55;
+    font-size: 19px;
+    padding: 0 clamp(16px, 3vw, 48px) 120px;
   }
-  .wrap { max-width: 980px; margin: 0 auto; }
-  .prose { max-width: 720px; }
+  .wrap { max-width: 1520px; margin: 0 auto; }
+  .prose { max-width: 980px; }
 
-  header.cover {
-    padding: 64px 0 40px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 40px;
-  }
-  .eyebrow {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    color: var(--teal);
-    text-transform: uppercase;
-  }
-  h1 {
-    font-size: clamp(28px, 4vw, 40px);
-    line-height: 1.25;
-    margin: 10px 0 14px;
-    text-wrap: balance;
-    letter-spacing: -0.01em;
-  }
-  .cover-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 28px;
-    color: var(--ink-soft);
-    font-size: 14.5px;
-  }
+  header.cover { padding: 56px 0 36px; border-bottom: 1px solid var(--border); margin-bottom: 44px; }
+  .eyebrow { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; color: var(--teal); text-transform: uppercase; }
+  h1 { font-size: clamp(36px, 4.2vw, 56px); line-height: 1.2; margin: 14px 0 18px; text-wrap: balance; letter-spacing: -0.01em; }
+  .cover-meta { display: flex; flex-wrap: wrap; gap: 12px 36px; color: var(--ink-soft); font-size: 19px; }
   .cover-meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
 
-  h2 {
-    font-size: 22px;
-    margin: 56px 0 6px;
-    letter-spacing: -0.01em;
-  }
-  h2 .num { color: var(--ink-soft); font-weight: 500; margin-right: 8px; }
-  .section-sub { color: var(--ink-soft); font-size: 14.5px; margin: 0 0 22px; max-width: 720px; }
-  h3 { font-size: 17px; margin: 0; }
-  h4 { font-size: 13.5px; color: var(--ink-soft); font-weight: 600; margin: 0 0 8px; }
+  h2 { font-size: 32px; margin: 68px 0 8px; letter-spacing: -0.01em; }
+  .section-sub { color: var(--ink-soft); font-size: 19px; margin: 0 0 28px; max-width: 980px; }
+  h3 { font-size: 22px; margin: 0; }
+  h4 { font-size: 18px; color: var(--ink-soft); font-weight: 700; margin: 0 0 12px; }
 
-  .method-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 14px;
-    margin: 20px 0;
-  }
-  .method-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    box-shadow: var(--shadow);
-  }
-  .method-card__label {
-    font-size: 12.5px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
+  .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin: 24px 0; }
+  .method-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px 28px; box-shadow: var(--shadow); }
+  .method-card__label { font-size: 15px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
   .method-card--judge .method-card__label { color: var(--teal); }
   .method-card--invest .method-card__label { color: var(--amber); }
   .method-card--final .method-card__label { color: var(--final); }
-  .method-card p { margin: 8px 0 0; font-size: 14px; color: var(--ink-soft); }
+  .method-card p { margin: 12px 0 0; font-size: 18px; color: var(--ink-soft); }
   .method-card .formula {
     font-family: ui-monospace, 'SF Mono', Consolas, monospace;
-    font-size: 13px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin-top: 10px;
-    color: var(--ink);
-    overflow-x: auto;
+    font-size: 17px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin-top: 14px; color: var(--ink); overflow-x: auto;
   }
-  .rubric-list { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13.5px; }
-  .rubric-list li { display: flex; justify-content: space-between; padding: 4px 0; border-top: 1px dashed var(--border); }
+  .rubric-list { list-style: none; padding: 0; margin: 14px 0 0; font-size: 18px; }
+  .rubric-list li { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px dashed var(--border); }
   .rubric-list li:first-child { border-top: none; }
 
-  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
-  .table-scroll--tall { max-height: 320px; overflow-y: auto; }
-  table.data-table { border-collapse: collapse; width: 100%; font-size: 13.5px; white-space: nowrap; }
-  table.data-table th {
-    text-align: left;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: var(--surface);
+  /* ---- rank / investor cards (no fixed-width table, reflows at any size) ---- */
+  .rank-grid { display: flex; flex-direction: column; gap: 12px; }
+  .rank-card {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 20px 32px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 26px; box-shadow: var(--shadow);
   }
-  table.data-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
-  table.data-table tbody tr:last-child td { border-bottom: none; }
-  table.data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-  table.data-table .unit { color: var(--ink-soft); font-size: 11px; margin-left: 1px; }
-  table.data-table .muted { color: var(--ink-soft); }
-  table.data-table .strong { font-weight: 700; }
-  table.data-table .final { font-weight: 700; color: var(--final); }
-  .avg-row td { background: var(--final-soft); font-weight: 700; }
-
-  .rank-row--award { background: var(--award-soft); }
-  .col-rank { width: 44px; }
+  .rank-card--award { background: var(--award-soft); border-color: color-mix(in srgb, var(--award) 35%, var(--border)); }
+  .rank-card__id { display: flex; align-items: center; gap: 16px; min-width: 240px; flex: 1 1 240px; }
+  .rank-card__name { font-size: 24px; margin: 0; }
+  .rank-card__sub { font-size: 16px; color: var(--ink-soft); }
   .rank-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 30px; height: 30px; border-radius: 50%;
     background: var(--final-soft); color: var(--final);
-    font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+    font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
+  .rank-badge--lg { width: 46px; height: 46px; font-size: 19px; }
   .rank-badge--award { background: var(--award); color: #fff; }
-  .prize-tag { font-size: 11.5px; color: var(--award); font-weight: 700; }
-  .investor-row--prize { background: var(--award-soft); }
-  .profit-pos { color: var(--pos); font-weight: 700; }
-  .profit-neg { color: var(--neg); font-weight: 700; }
+  .prize-tag { font-size: 15px; color: var(--award); font-weight: 800; }
 
-  .team-detail {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 22px 24px 24px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow);
+  .rank-card__stats { display: flex; flex-wrap: wrap; gap: 24px 40px; flex: 2 1 480px; justify-content: flex-end; }
+  .stat { display: flex; flex-direction: column; align-items: flex-end; min-width: 108px; }
+  .stat__label { font-size: 13.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-soft); }
+  .stat__value { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .stat__value .unit { font-size: 14px; font-weight: 600; color: var(--ink-soft); margin-left: 2px; }
+  .stat__sub { font-size: 14px; color: var(--ink-soft); }
+  .stat--final .stat__value { color: var(--final); }
+  .profit-pos { color: var(--pos); }
+  .profit-neg { color: var(--neg); }
+  @media (max-width: 640px) { .rank-card__stats { justify-content: flex-start; } .stat { align-items: flex-start; } }
+
+  /* ---- detail tables (few columns, safe to keep as real tables) ---- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+  .table-scroll--tall { max-height: 420px; overflow-y: auto; }
+  table.data-table { border-collapse: collapse; width: 100%; font-size: 17px; }
+  table.data-table th {
+    text-align: left; font-size: 14px; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase;
+    color: var(--ink-soft); padding: 14px 18px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface); line-height: 1.35;
   }
-  .team-detail__head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .team-detail__head h3 { flex: 1; }
-  .final-pill {
-    font-size: 12.5px; font-weight: 700; color: var(--final);
-    background: var(--final-soft); padding: 4px 10px; border-radius: 999px;
-  }
-  .team-detail__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 720px) { .team-detail__grid { grid-template-columns: 1fr; } }
-  .calc-note {
-    margin: 16px 0 0; font-size: 13px; color: var(--ink-soft);
-    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
-  }
+  table.data-table td { padding: 13px 18px; border-bottom: 1px solid var(--border); }
+  table.data-table tbody tr:last-child td { border-bottom: none; }
+  table.data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.data-table .unit { color: var(--ink-soft); font-size: 13px; margin-left: 1px; }
+  table.data-table .muted { color: var(--ink-soft); }
+  table.data-table .strong { font-weight: 800; }
+  .avg-row td { background: var(--final-soft); font-weight: 800; }
+
+  .team-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 30px 32px 32px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .team-detail__head { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .team-detail__head h3 { flex: 1; min-width: 200px; }
+  .final-pill { font-size: 16px; font-weight: 800; color: var(--final); background: var(--final-soft); padding: 6px 14px; border-radius: 999px; }
+  .team-detail__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  @media (max-width: 900px) { .team-detail__grid { grid-template-columns: 1fr; } }
+  .calc-note { margin: 20px 0 0; font-size: 16px; color: var(--ink-soft); font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
   .calc-note strong { color: var(--final); font-family: inherit; }
 
-  .flag-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 18px 0; }
-  .flag-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
-  .flag-card h4 { margin-bottom: 10px; }
-  .flag-list { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-soft); }
-  .flag-list li { padding: 2px 0; }
+  .flag-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin: 22px 0; }
+  .flag-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; }
+  .flag-card h4 { margin-bottom: 12px; }
+  .flag-list { margin: 0; padding-left: 20px; font-size: 17px; color: var(--ink-soft); line-height: 1.7; }
+  .flag-list li { padding: 3px 0; }
 
-  footer.report-footer {
-    margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
-    font-size: 12.5px; color: var(--ink-soft);
-  }
+  footer.report-footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 15px; color: var(--ink-soft); }
 
   ::selection { background: var(--teal-soft); }
 </style>
@@ -223,7 +157,7 @@
       <span>참가팀 <b>15개팀 · 45명</b></span>
       <span>심사위원 <b>3명</b> (고은표, 김창희, 조성호)</span>
       <span>투자 참여 <b>42명</b></span>
-      <span>데이터 기준 <b>2026-08-01 08:46 UTC</b></span>
+      <span>데이터 기준 <b>2026-08-01 09:16 UTC</b></span>
     </div>
   </header>
 
@@ -270,146 +204,171 @@
   <section>
     <h2>3. 최종 순위</h2>
     <p class="section-sub">음영 처리된 1~5위가 시상 대상입니다. 전체 15팀 순위와 산출 근거를 투명하게 공개합니다.</p>
-    <div class="table-scroll">
-      <table class="data-table">
-        <thead><tr><th>순위</th><th>팀명</th><th>심사점수</th><th>심사백분위</th><th>투자유치액</th><th>투자백분위</th><th>최종점수(100)</th></tr></thead>
-        <tbody><tr class="rank-row rank-row--award">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">1</span></td>
-      <td class="col-team">Jachin(야긴)</td>
-      <td class="num">87<span class="unit">/100</span></td>
-      <td class="num muted">100.0%</td>
-      <td class="num">68,904<span class="unit">P</span></td>
-      <td class="num muted">100.0%</td>
-      <td class="num final">100</td>
-    </tr>
-<tr class="rank-row rank-row--award">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">2</span></td>
-      <td class="col-team">유니온 AI</td>
-      <td class="num">83.3<span class="unit">/100</span></td>
-      <td class="num muted">92.9%</td>
-      <td class="num">44,245<span class="unit">P</span></td>
-      <td class="num muted">85.7%</td>
-      <td class="num final">89.3</td>
-    </tr>
-<tr class="rank-row rank-row--award">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">3</span></td>
-      <td class="col-team">에너지온 (Energy ON)</td>
-      <td class="num">79.7<span class="unit">/100</span></td>
-      <td class="num muted">85.7%</td>
-      <td class="num">43,955<span class="unit">P</span></td>
-      <td class="num muted">78.6%</td>
-      <td class="num final">82.1</td>
-    </tr>
-<tr class="rank-row rank-row--award">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">4</span></td>
-      <td class="col-team">세박자</td>
-      <td class="num">70.3<span class="unit">/100</span></td>
-      <td class="num muted">64.3%</td>
-      <td class="num">49,240<span class="unit">P</span></td>
-      <td class="num muted">92.9%</td>
-      <td class="num final">78.6</td>
-    </tr>
-<tr class="rank-row rank-row--award">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">5</span></td>
-      <td class="col-team">홈즈 AI</td>
-      <td class="num">72.3<span class="unit">/100</span></td>
-      <td class="num muted">78.6%</td>
-      <td class="num">25,665<span class="unit">P</span></td>
-      <td class="num muted">57.1%</td>
-      <td class="num final">67.9</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">6</span></td>
-      <td class="col-team">호박고구마</td>
-      <td class="num">65<span class="unit">/100</span></td>
-      <td class="num muted">50.0%</td>
-      <td class="num">33,975<span class="unit">P</span></td>
-      <td class="num muted">71.4%</td>
-      <td class="num final">60.7</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">7</span></td>
-      <td class="col-team">역학싫어함</td>
-      <td class="num">67.7<span class="unit">/100</span></td>
-      <td class="num muted">57.1%</td>
-      <td class="num">18,111<span class="unit">P</span></td>
-      <td class="num muted">42.9%</td>
-      <td class="num final">50</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">8</span></td>
-      <td class="col-team">AI-GINEERS</td>
-      <td class="num">72<span class="unit">/100</span></td>
-      <td class="num muted">71.4%</td>
-      <td class="num">15,754<span class="unit">P</span></td>
-      <td class="num muted">21.4%</td>
-      <td class="num final">46.4</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">9</span></td>
-      <td class="col-team">LOSSZERO</td>
-      <td class="num">63.3<span class="unit">/100</span></td>
-      <td class="num muted">42.9%</td>
-      <td class="num">18,746<span class="unit">P</span></td>
-      <td class="num muted">50.0%</td>
-      <td class="num final">46.4</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">10</span></td>
-      <td class="col-team">두더지</td>
-      <td class="num">60<span class="unit">/100</span></td>
-      <td class="num muted">28.6%</td>
-      <td class="num">31,222<span class="unit">P</span></td>
-      <td class="num muted">64.3%</td>
-      <td class="num final">46.4</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">11</span></td>
-      <td class="col-team">GNU-Engineering-Makers</td>
-      <td class="num">61<span class="unit">/100</span></td>
-      <td class="num muted">35.7%</td>
-      <td class="num">16,882<span class="unit">P</span></td>
-      <td class="num muted">28.6%</td>
-      <td class="num final">32.1</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">12</span></td>
-      <td class="col-team">S.E.S(Super Elite Semiconductor)</td>
-      <td class="num">48.3<span class="unit">/100</span></td>
-      <td class="num muted">7.1%</td>
-      <td class="num">17,665<span class="unit">P</span></td>
-      <td class="num muted">35.7%</td>
-      <td class="num final">21.4</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">13</span></td>
-      <td class="col-team">부산야호</td>
-      <td class="num">50.3<span class="unit">/100</span></td>
-      <td class="num muted">21.4%</td>
-      <td class="num">8,183<span class="unit">P</span></td>
-      <td class="num muted">7.1%</td>
-      <td class="num final">14.3</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">14</span></td>
-      <td class="col-team">노바(NOVA)</td>
-      <td class="num">49.3<span class="unit">/100</span></td>
-      <td class="num muted">14.3%</td>
-      <td class="num">13,609<span class="unit">P</span></td>
-      <td class="num muted">14.3%</td>
-      <td class="num final">14.3</td>
-    </tr>
-<tr class="rank-row">
-      <td class="col-rank"><span class="rank-badge">15</span></td>
-      <td class="col-team">dsu.iot</td>
-      <td class="num">43.3<span class="unit">/100</span></td>
-      <td class="num muted">0.0%</td>
-      <td class="num">7,077<span class="unit">P</span></td>
-      <td class="num muted">0.0%</td>
-      <td class="num final">0</td>
-    </tr></tbody>
-      </table>
-    </div>
+    <div class="rank-grid"><article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">1</span>
+        <h3 class="rank-card__name">Jachin(야긴)</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">87<span class="unit">/100</span></span><span class="stat__sub">백분위 100.0%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">68,904<span class="unit">P</span></span><span class="stat__sub">백분위 100.0%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">100</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">2</span>
+        <h3 class="rank-card__name">유니온 AI</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">83.3<span class="unit">/100</span></span><span class="stat__sub">백분위 92.9%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">44,245<span class="unit">P</span></span><span class="stat__sub">백분위 85.7%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">89.3</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">3</span>
+        <h3 class="rank-card__name">에너지온 (Energy ON)</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">79.7<span class="unit">/100</span></span><span class="stat__sub">백분위 85.7%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">43,955<span class="unit">P</span></span><span class="stat__sub">백분위 78.6%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">82.1</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">4</span>
+        <h3 class="rank-card__name">세박자</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">70.3<span class="unit">/100</span></span><span class="stat__sub">백분위 64.3%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">49,240<span class="unit">P</span></span><span class="stat__sub">백분위 92.9%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">78.6</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">5</span>
+        <h3 class="rank-card__name">홈즈 AI</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">72.3<span class="unit">/100</span></span><span class="stat__sub">백분위 78.6%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">25,665<span class="unit">P</span></span><span class="stat__sub">백분위 57.1%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">67.9</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">6</span>
+        <h3 class="rank-card__name">호박고구마</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">65<span class="unit">/100</span></span><span class="stat__sub">백분위 50.0%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">33,975<span class="unit">P</span></span><span class="stat__sub">백분위 71.4%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">60.7</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">7</span>
+        <h3 class="rank-card__name">역학싫어함</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">67.7<span class="unit">/100</span></span><span class="stat__sub">백분위 57.1%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">18,111<span class="unit">P</span></span><span class="stat__sub">백분위 42.9%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">50</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">8</span>
+        <h3 class="rank-card__name">AI-GINEERS</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">72<span class="unit">/100</span></span><span class="stat__sub">백분위 71.4%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">15,754<span class="unit">P</span></span><span class="stat__sub">백분위 21.4%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">46.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">9</span>
+        <h3 class="rank-card__name">LOSSZERO</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">63.3<span class="unit">/100</span></span><span class="stat__sub">백분위 42.9%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">18,746<span class="unit">P</span></span><span class="stat__sub">백분위 50.0%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">46.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">10</span>
+        <h3 class="rank-card__name">두더지</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">60<span class="unit">/100</span></span><span class="stat__sub">백분위 28.6%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">31,222<span class="unit">P</span></span><span class="stat__sub">백분위 64.3%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">46.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">11</span>
+        <h3 class="rank-card__name">GNU-Engineering-Makers</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">61<span class="unit">/100</span></span><span class="stat__sub">백분위 35.7%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">16,882<span class="unit">P</span></span><span class="stat__sub">백분위 28.6%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">32.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">12</span>
+        <h3 class="rank-card__name">S.E.S(Super Elite Semiconductor)</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">48.3<span class="unit">/100</span></span><span class="stat__sub">백분위 7.1%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">17,665<span class="unit">P</span></span><span class="stat__sub">백분위 35.7%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">21.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">13</span>
+        <h3 class="rank-card__name">부산야호</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">50.3<span class="unit">/100</span></span><span class="stat__sub">백분위 21.4%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">8,183<span class="unit">P</span></span><span class="stat__sub">백분위 7.1%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">14.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">14</span>
+        <h3 class="rank-card__name">노바(NOVA)</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">49.3<span class="unit">/100</span></span><span class="stat__sub">백분위 14.3%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">13,609<span class="unit">P</span></span><span class="stat__sub">백분위 14.3%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">14.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">15</span>
+        <h3 class="rank-card__name">dsu.iot</h3>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">심사점수</span><span class="stat__value">43.3<span class="unit">/100</span></span><span class="stat__sub">백분위 0.0%</span></div>
+        <div class="stat"><span class="stat__label">투자유치액</span><span class="stat__value">7,077<span class="unit">P</span></span><span class="stat__sub">백분위 0.0%</span></div>
+        <div class="stat stat--final"><span class="stat__label">최종점수</span><span class="stat__value">0</span></div>
+      </div>
+    </article></div>
   </section>
 
   <section>
@@ -3084,348 +3043,595 @@
 
   <section>
     <h2>5. 베스트 인베스터 전체 순위</h2>
-    <p class="section-sub">상위 8명(음영 처리)이 시상 대상입니다.</p>
-    <div class="table-scroll">
-      <table class="data-table">
-        <thead><tr><th>순위</th><th>이름</th><th>소속팀</th><th>총 투자액</th><th>최종 평가액</th><th>손익</th></tr></thead>
-        <tbody><tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">1</span></td>
-      <td>김혜주 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">S.E.S(Super Elite Semiconductor)</td>
-      <td class="num">10,000</td>
-      <td class="num">15,000</td>
-      <td class="num profit-pos">+5,000</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">2</span></td>
-      <td>김봄 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">역학싫어함</td>
-      <td class="num">10,000</td>
-      <td class="num">13,964.3</td>
-      <td class="num profit-pos">+3,964.3</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">3</span></td>
-      <td>이민서 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">S.E.S(Super Elite Semiconductor)</td>
-      <td class="num">10,000</td>
-      <td class="num">13,839.3</td>
-      <td class="num profit-pos">+3,839.3</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">4</span></td>
-      <td>이서준 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">AI-GINEERS</td>
-      <td class="num">10,000</td>
-      <td class="num">13,821.4</td>
-      <td class="num profit-pos">+3,821.4</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">5</span></td>
-      <td>이태민 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">AI-GINEERS</td>
-      <td class="num">10,000</td>
-      <td class="num">13,500</td>
-      <td class="num profit-pos">+3,500</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">6</span></td>
-      <td>문준영 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">AI-GINEERS</td>
-      <td class="num">10,000</td>
-      <td class="num">13,178.6</td>
-      <td class="num profit-pos">+3,178.6</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">7</span></td>
-      <td>이요한 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">호박고구마</td>
-      <td class="num">10,000</td>
-      <td class="num">13,177.5</td>
-      <td class="num profit-pos">+3,177.5</td>
-    </tr>
-<tr class="investor-row--prize">
-      <td class="col-rank"><span class="rank-badge rank-badge--award">8</span></td>
-      <td>강류은 <span class="prize-tag">🏆 5만원</span></td>
-      <td class="muted">두더지</td>
-      <td class="num">10,000</td>
-      <td class="num">13,089.3</td>
-      <td class="num profit-pos">+3,089.3</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">9</span></td>
-      <td>손준배</td>
-      <td class="muted">GNU-Engineering-Makers</td>
-      <td class="num">10,000</td>
-      <td class="num">12,857.1</td>
-      <td class="num profit-pos">+2,857.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">10</span></td>
-      <td>도규민</td>
-      <td class="muted">GNU-Engineering-Makers</td>
-      <td class="num">10,000</td>
-      <td class="num">12,857.1</td>
-      <td class="num profit-pos">+2,857.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">11</span></td>
-      <td>이건주</td>
-      <td class="muted">홈즈 AI</td>
-      <td class="num">10,000</td>
-      <td class="num">12,821.4</td>
-      <td class="num profit-pos">+2,821.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">12</span></td>
-      <td>김지헌</td>
-      <td class="muted">역학싫어함</td>
-      <td class="num">10,000</td>
-      <td class="num">12,650</td>
-      <td class="num profit-pos">+2,650</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">13</span></td>
-      <td>이정현</td>
-      <td class="muted">두더지</td>
-      <td class="num">10,000</td>
-      <td class="num">12,571.4</td>
-      <td class="num profit-pos">+2,571.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">14</span></td>
-      <td>김영완</td>
-      <td class="muted">세박자</td>
-      <td class="num">10,000</td>
-      <td class="num">12,214.3</td>
-      <td class="num profit-pos">+2,214.3</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">15</span></td>
-      <td>원정우</td>
-      <td class="muted">역학싫어함</td>
-      <td class="num">10,000</td>
-      <td class="num">11,982.1</td>
-      <td class="num profit-pos">+1,982.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">16</span></td>
-      <td>김민주</td>
-      <td class="muted">두더지</td>
-      <td class="num">10,000</td>
-      <td class="num">11,932.1</td>
-      <td class="num profit-pos">+1,932.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">17</span></td>
-      <td>권진석</td>
-      <td class="muted">유니온 AI</td>
-      <td class="num">10,000</td>
-      <td class="num">11,875</td>
-      <td class="num profit-pos">+1,875</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">18</span></td>
-      <td>안재욱</td>
-      <td class="muted">노바(NOVA)</td>
-      <td class="num">10,000</td>
-      <td class="num">11,864.4</td>
-      <td class="num profit-pos">+1,864.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">19</span></td>
-      <td>김다희</td>
-      <td class="muted">노바(NOVA)</td>
-      <td class="num">10,000</td>
-      <td class="num">11,710.7</td>
-      <td class="num profit-pos">+1,710.7</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">20</span></td>
-      <td>신현승</td>
-      <td class="muted">dsu.iot</td>
-      <td class="num">10,000</td>
-      <td class="num">11,607.1</td>
-      <td class="num profit-pos">+1,607.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">21</span></td>
-      <td>정지예</td>
-      <td class="muted">에너지온 (Energy ON)</td>
-      <td class="num">10,000</td>
-      <td class="num">11,496.4</td>
-      <td class="num profit-pos">+1,496.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">22</span></td>
-      <td>오준영</td>
-      <td class="muted">LOSSZERO</td>
-      <td class="num">10,000</td>
-      <td class="num">11,410.7</td>
-      <td class="num profit-pos">+1,410.7</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">23</span></td>
-      <td>주찬영</td>
-      <td class="muted">Jachin(야긴)</td>
-      <td class="num">10,000</td>
-      <td class="num">11,257.1</td>
-      <td class="num profit-pos">+1,257.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">24</span></td>
-      <td>엄태연</td>
-      <td class="muted">Jachin(야긴)</td>
-      <td class="num">9,500</td>
-      <td class="num">10,721.4</td>
-      <td class="num profit-pos">+1,221.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">25</span></td>
-      <td>김선우</td>
-      <td class="muted">LOSSZERO</td>
-      <td class="num">10,000</td>
-      <td class="num">10,950</td>
-      <td class="num profit-pos">+950</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">26</span></td>
-      <td>하예리</td>
-      <td class="muted">홈즈 AI</td>
-      <td class="num">10,000</td>
-      <td class="num">10,875.3</td>
-      <td class="num profit-pos">+875.3</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">27</span></td>
-      <td>이승아</td>
-      <td class="muted">부산야호</td>
-      <td class="num">10,000</td>
-      <td class="num">10,839.3</td>
-      <td class="num profit-pos">+839.3</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">28</span></td>
-      <td>이상훈</td>
-      <td class="muted">Jachin(야긴)</td>
-      <td class="num">10,000</td>
-      <td class="num">10,660.7</td>
-      <td class="num profit-pos">+660.7</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">29</span></td>
-      <td>구본국</td>
-      <td class="muted">dsu.iot</td>
-      <td class="num">9,933</td>
-      <td class="num">10,564.1</td>
-      <td class="num profit-pos">+631.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">30</span></td>
-      <td>김재연</td>
-      <td class="muted">노바(NOVA)</td>
-      <td class="num">9,500</td>
-      <td class="num">10,071.4</td>
-      <td class="num profit-pos">+571.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">31</span></td>
-      <td>박영준</td>
-      <td class="muted">LOSSZERO</td>
-      <td class="num">10,000</td>
-      <td class="num">10,350</td>
-      <td class="num profit-pos">+350</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">32</span></td>
-      <td>안도규</td>
-      <td class="muted">부산야호</td>
-      <td class="num">5,000</td>
-      <td class="num">5,344.6</td>
-      <td class="num profit-pos">+344.6</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">33</span></td>
-      <td>박태준</td>
-      <td class="muted">유니온 AI</td>
-      <td class="num">9,300</td>
-      <td class="num">9,603.6</td>
-      <td class="num profit-pos">+303.6</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">34</span></td>
-      <td>정인혜</td>
-      <td class="muted">호박고구마</td>
-      <td class="num">10,000</td>
-      <td class="num">10,228.6</td>
-      <td class="num profit-pos">+228.6</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">35</span></td>
-      <td>오경진</td>
-      <td class="muted">GNU-Engineering-Makers</td>
-      <td class="num">10,000</td>
-      <td class="num">10,128.4</td>
-      <td class="num profit-pos">+128.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">36</span></td>
-      <td>유희원</td>
-      <td class="muted">세박자</td>
-      <td class="num">10,000</td>
-      <td class="num">10,107.1</td>
-      <td class="num profit-pos">+107.1</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">37</span></td>
-      <td>설가현</td>
-      <td class="muted">호박고구마</td>
-      <td class="num">10,000</td>
-      <td class="num">10,010.4</td>
-      <td class="num profit-pos">+10.4</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">38</span></td>
-      <td>박민지</td>
-      <td class="muted">부산야호</td>
-      <td class="num">10,000</td>
-      <td class="num">10,000</td>
-      <td class="num profit-pos">+0</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">39</span></td>
-      <td>정민우</td>
-      <td class="muted">세박자</td>
-      <td class="num">10,000</td>
-      <td class="num">9,962.5</td>
-      <td class="num profit-neg">-37.5</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">40</span></td>
-      <td>김예지</td>
-      <td class="muted">에너지온 (Energy ON)</td>
-      <td class="num">10,000</td>
-      <td class="num">9,785.7</td>
-      <td class="num profit-neg">-214.3</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">41</span></td>
-      <td>김영광</td>
-      <td class="muted">유니온 AI</td>
-      <td class="num">10,000</td>
-      <td class="num">9,715.4</td>
-      <td class="num profit-neg">-284.6</td>
-    </tr>
-<tr class="">
-      <td class="col-rank"><span class="rank-badge">42</span></td>
-      <td>변성훈</td>
-      <td class="muted">에너지온 (Energy ON)</td>
-      <td class="num">10,000</td>
-      <td class="num">9,160.7</td>
-      <td class="num profit-neg">-839.3</td>
-    </tr></tbody>
-      </table>
-    </div>
+    <p class="section-sub">음영 처리된 상위 8명이 시상 대상입니다.</p>
+    <div class="rank-grid"><article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">1</span>
+        <div>
+          <h3 class="rank-card__name">김혜주 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">S.E.S(Super Elite Semiconductor)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">15,000</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+5,000</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">2</span>
+        <div>
+          <h3 class="rank-card__name">김봄 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">역학싫어함</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,964.3</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,964.3</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">3</span>
+        <div>
+          <h3 class="rank-card__name">이민서 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">S.E.S(Super Elite Semiconductor)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,839.3</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,839.3</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">4</span>
+        <div>
+          <h3 class="rank-card__name">이서준 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">AI-GINEERS</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,821.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,821.4</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">5</span>
+        <div>
+          <h3 class="rank-card__name">이태민 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">AI-GINEERS</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,500</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,500</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">6</span>
+        <div>
+          <h3 class="rank-card__name">문준영 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">AI-GINEERS</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,178.6</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,178.6</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">7</span>
+        <div>
+          <h3 class="rank-card__name">이요한 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">호박고구마</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,177.5</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,177.5</span></div>
+      </div>
+    </article>
+<article class="rank-card rank-card--award">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg rank-badge--award">8</span>
+        <div>
+          <h3 class="rank-card__name">강류은 <span class="prize-tag">🏆 5만원</span></h3>
+          <span class="rank-card__sub">두더지</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">13,089.3</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+3,089.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">9</span>
+        <div>
+          <h3 class="rank-card__name">손준배</h3>
+          <span class="rank-card__sub">GNU-Engineering-Makers</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">12,857.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+2,857.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">10</span>
+        <div>
+          <h3 class="rank-card__name">도규민</h3>
+          <span class="rank-card__sub">GNU-Engineering-Makers</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">12,857.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+2,857.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">11</span>
+        <div>
+          <h3 class="rank-card__name">이건주</h3>
+          <span class="rank-card__sub">홈즈 AI</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">12,821.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+2,821.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">12</span>
+        <div>
+          <h3 class="rank-card__name">김지헌</h3>
+          <span class="rank-card__sub">역학싫어함</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">12,650</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+2,650</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">13</span>
+        <div>
+          <h3 class="rank-card__name">이정현</h3>
+          <span class="rank-card__sub">두더지</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">12,571.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+2,571.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">14</span>
+        <div>
+          <h3 class="rank-card__name">김영완</h3>
+          <span class="rank-card__sub">세박자</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">12,214.3</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+2,214.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">15</span>
+        <div>
+          <h3 class="rank-card__name">원정우</h3>
+          <span class="rank-card__sub">역학싫어함</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,982.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,982.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">16</span>
+        <div>
+          <h3 class="rank-card__name">김민주</h3>
+          <span class="rank-card__sub">두더지</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,932.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,932.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">17</span>
+        <div>
+          <h3 class="rank-card__name">권진석</h3>
+          <span class="rank-card__sub">유니온 AI</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,875</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,875</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">18</span>
+        <div>
+          <h3 class="rank-card__name">안재욱</h3>
+          <span class="rank-card__sub">노바(NOVA)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,864.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,864.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">19</span>
+        <div>
+          <h3 class="rank-card__name">김다희</h3>
+          <span class="rank-card__sub">노바(NOVA)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,710.7</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,710.7</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">20</span>
+        <div>
+          <h3 class="rank-card__name">신현승</h3>
+          <span class="rank-card__sub">dsu.iot</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,607.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,607.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">21</span>
+        <div>
+          <h3 class="rank-card__name">정지예</h3>
+          <span class="rank-card__sub">에너지온 (Energy ON)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,496.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,496.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">22</span>
+        <div>
+          <h3 class="rank-card__name">오준영</h3>
+          <span class="rank-card__sub">LOSSZERO</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,410.7</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,410.7</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">23</span>
+        <div>
+          <h3 class="rank-card__name">주찬영</h3>
+          <span class="rank-card__sub">Jachin(야긴)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">11,257.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,257.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">24</span>
+        <div>
+          <h3 class="rank-card__name">엄태연</h3>
+          <span class="rank-card__sub">Jachin(야긴)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">9,500<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,721.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+1,221.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">25</span>
+        <div>
+          <h3 class="rank-card__name">김선우</h3>
+          <span class="rank-card__sub">LOSSZERO</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,950</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+950</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">26</span>
+        <div>
+          <h3 class="rank-card__name">하예리</h3>
+          <span class="rank-card__sub">홈즈 AI</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,875.3</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+875.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">27</span>
+        <div>
+          <h3 class="rank-card__name">이승아</h3>
+          <span class="rank-card__sub">부산야호</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,839.3</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+839.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">28</span>
+        <div>
+          <h3 class="rank-card__name">이상훈</h3>
+          <span class="rank-card__sub">Jachin(야긴)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,660.7</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+660.7</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">29</span>
+        <div>
+          <h3 class="rank-card__name">구본국</h3>
+          <span class="rank-card__sub">dsu.iot</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">9,933<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,564.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+631.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">30</span>
+        <div>
+          <h3 class="rank-card__name">김재연</h3>
+          <span class="rank-card__sub">노바(NOVA)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">9,500<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,071.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+571.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">31</span>
+        <div>
+          <h3 class="rank-card__name">박영준</h3>
+          <span class="rank-card__sub">LOSSZERO</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,350</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+350</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">32</span>
+        <div>
+          <h3 class="rank-card__name">안도규</h3>
+          <span class="rank-card__sub">부산야호</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">5,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">5,344.6</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+344.6</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">33</span>
+        <div>
+          <h3 class="rank-card__name">박태준</h3>
+          <span class="rank-card__sub">유니온 AI</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">9,300<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">9,603.6</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+303.6</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">34</span>
+        <div>
+          <h3 class="rank-card__name">정인혜</h3>
+          <span class="rank-card__sub">호박고구마</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,228.6</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+228.6</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">35</span>
+        <div>
+          <h3 class="rank-card__name">오경진</h3>
+          <span class="rank-card__sub">GNU-Engineering-Makers</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,128.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+128.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">36</span>
+        <div>
+          <h3 class="rank-card__name">유희원</h3>
+          <span class="rank-card__sub">세박자</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,107.1</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+107.1</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">37</span>
+        <div>
+          <h3 class="rank-card__name">설가현</h3>
+          <span class="rank-card__sub">호박고구마</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,010.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+10.4</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">38</span>
+        <div>
+          <h3 class="rank-card__name">박민지</h3>
+          <span class="rank-card__sub">부산야호</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">10,000</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-pos">+0</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">39</span>
+        <div>
+          <h3 class="rank-card__name">정민우</h3>
+          <span class="rank-card__sub">세박자</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">9,962.5</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-neg">-37.5</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">40</span>
+        <div>
+          <h3 class="rank-card__name">김예지</h3>
+          <span class="rank-card__sub">에너지온 (Energy ON)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">9,785.7</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-neg">-214.3</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">41</span>
+        <div>
+          <h3 class="rank-card__name">김영광</h3>
+          <span class="rank-card__sub">유니온 AI</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">9,715.4</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-neg">-284.6</span></div>
+      </div>
+    </article>
+<article class="rank-card">
+      <div class="rank-card__id">
+        <span class="rank-badge rank-badge--lg">42</span>
+        <div>
+          <h3 class="rank-card__name">변성훈</h3>
+          <span class="rank-card__sub">에너지온 (Energy ON)</span>
+        </div>
+      </div>
+      <div class="rank-card__stats">
+        <div class="stat"><span class="stat__label">총 투자액</span><span class="stat__value">10,000<span class="unit">P</span></span></div>
+        <div class="stat"><span class="stat__label">최종 평가액</span><span class="stat__value">9,160.7</span></div>
+        <div class="stat stat--final"><span class="stat__label">손익</span><span class="stat__value profit-neg">-839.3</span></div>
+      </div>
+    </article></div>
   </section>
 
   <section class="prose">
